@@ -1478,6 +1478,15 @@ function getActiveMachine() {
   return state.machines.find(m => m.id === state.activeMachineId) || state.machines[0];
 }
 
+// Spindle sort order: HS=0, GS=1, NS=2, null=3
+function spRank(s) { return s === 'HS' ? 0 : s === 'GS' ? 1 : s === 'NS' ? 2 : 3; }
+
+// Canonical T-label: T01-HS / T01-GS / T01-NS / T01
+function toolLabel(t) {
+  return (t.spindle === 'HS' || t.spindle === 'GS' || t.spindle === 'NS')
+    ? `T${t.num}-${t.spindle}` : `T${t.num}`;
+}
+
 function getLibrary(machineId) {
   return state.toolLibrary[machineId] || {};
 }
@@ -1681,7 +1690,6 @@ function extractTNumbers(text) {
     }
   }
 
-  const spRank = s => s === 'HS' ? 0 : s === 'GS' ? 1 : s === 'NS' ? 2 : 3;
   return Array.from(toolMap.values())
     .filter(t => t.hasActive)
     .map(t => ({ num: t.num, corr: t.corr, spindle: t.spindle, key: t.key, desc: '' }))
@@ -1860,11 +1868,10 @@ function parseFromMarker(text) {
       tools.push({ num: pt.num, corr: pt.corr, spindle: pt.spindle, key: pt.key, desc: '', _new: true });
     }
   }
-  const spRankParse = s => s === 'HS' ? 0 : s === 'GS' ? 1 : s === 'NS' ? 2 : 3;
   tools.sort((a, b) => {
     const na = parseInt(a.num), nb = parseInt(b.num);
     if (na !== nb) return na - nb;
-    return spRankParse(a.spindle) - spRankParse(b.spindle);
+    return spRank(a.spindle) - spRank(b.spindle);
   });
 
   state.meta         = info;
@@ -1941,9 +1948,7 @@ function buildCommentBlock() {
   }
 
   for (const t of state.tools) {
-    const label = (t.spindle === 'HS' || t.spindle === 'GS' || t.spindle === 'NS')
-      ? `T${t.num}-${t.spindle}` : `T${t.num}`;
-    lines.push(`(${label} ${s(t.desc) || '-'})`);
+    lines.push(`(${toolLabel(t)} ${s(t.desc) || '-'})`);
   }
 
   lines.push(MARKER_END);
@@ -1964,11 +1969,11 @@ function stripExistingMarker(text) {
   const ei = text.indexOf(MARKER_END, si);
   if (ei === -1) return before.trimEnd();
 
-  // After end marker, skip one newline
+  // After end marker, skip one newline (check \r\n before \n)
   const afterEnd = ei + MARKER_END.length;
   let rest = text.slice(afterEnd);
-  if (rest.startsWith('\n')) rest = rest.slice(1);
   if (rest.startsWith('\r\n')) rest = rest.slice(2);
+  else if (rest.startsWith('\n')) rest = rest.slice(1);
 
   return before + (rest ? '\n' + rest : '');
 }
@@ -2149,7 +2154,7 @@ function buildToolRows(tools) {
         : '';
     const k = t.key;
     const isNS = t.spindle === 'NS';
-    const tLabel = (t.spindle === 'HS' || t.spindle === 'GS') ? `T${t.num}-${t.spindle}` : `T${t.num}`;
+    const tLabel = toolLabel(t);
     const hasLibEntries = getLibraryEntries(state.activeMachineId, k).length > 0;
 
     const mainRow = `<tr data-tool-key="${k}" class="${rowClass}">
@@ -2179,7 +2184,7 @@ function buildToolRows(tools) {
     // Build "Ersetzen durch" dropdown: new tools first, then others
     const newTools   = state.tools.filter(o => o._new);
     const otherTools = state.tools.filter(o => !o._new && !o._removed && o.key !== k);
-    const tLbl = o => o.spindle ? `T${o.num}-${o.spindle}` : `T${o.num}`;
+    const tLbl = o => toolLabel(o);
     const opts = [
       `<option value="">— Ersetzen durch —</option>`,
       ...newTools.map(o => `<option value="${o.key}">▶ ${tLbl(o)}${o.desc ? ' · ' + esc(o.desc) : ''}</option>`),
@@ -2381,11 +2386,10 @@ function addToolRow() {
     state.tools.push({ num, corr: num, spindle: null, key: num, desc: '' });
   }
 
-  const spRankAdd = s => s === 'HS' ? 0 : s === 'GS' ? 1 : s === 'NS' ? 2 : 3;
   state.tools.sort((a, b) => {
     const na = parseInt(a.num), nb = parseInt(b.num);
     if (na !== nb) return na - nb;
-    return spRankAdd(a.spindle) - spRankAdd(b.spindle);
+    return spRank(a.spindle) - spRank(b.spindle);
   });
   renderToolTable();
   updateBadges();
