@@ -1,0 +1,26 @@
+appId:       de.nccomment.app
+productName: NC-Kommentar Manager
+
+directories:
+  output: dist
+
+files:
+  - src/**/*
+  - electron/**/*
+
+win:
+  target:
+    - target: nsis
+      arch:   [x64]
+  # icon: assets/icon.ico   # Uncomment once icon file is added
+
+nsis:
+  oneClick:                        false
+  allowToChangeInstallationDirectory: true
+  installerLanguages:              ["de_DE"]
+  language:                        1031
+
+publish:
+  provider: github
+  owner:    DEIN_GITHUB_USERNAME    # ← hier anpassen
+  repo:     nc-comment
