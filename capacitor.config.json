@@ -1,0 +1,13 @@
+{
+  "appId": "de.nccomment.app",
+  "appName": "NC-Kommentar Manager",
+  "webDir": "src",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

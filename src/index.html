@@ -2638,6 +2638,90 @@ if (window.electronAPI) {
     }
   });
 }
+
+// ═══════════════════════════════════════════════════════════
+// ANDROID IN-APP UPDATE (Capacitor)
+// ═══════════════════════════════════════════════════════════
+if (window.Capacitor) {
+  const GITHUB_RELEASES_API = 'https://api.github.com/repos/CNC-Hydra/nc-comment/releases/latest';
+  const APK_FILENAME = 'NC-Kommentar-Manager.apk';
+
+  async function checkAndroidUpdate() {
+    try {
+      const resp = await fetch(GITHUB_RELEASES_API, {
+        headers: { 'Accept': 'application/vnd.github+json' }
+      });
+      if (!resp.ok) return;
+      const release = await resp.json();
+      const latestVersion = release.tag_name?.replace(/^v/, '') || '';
+      const apkAsset = release.assets?.find(a => a.name.endsWith('.apk'));
+      if (!apkAsset) return;
+
+      const currentVersion = document.querySelector('.topbar-brand')?.dataset.version || '0.0.0';
+      if (latestVersion && latestVersion !== currentVersion) {
+        showAndroidUpdateBanner(latestVersion, apkAsset.browser_download_url);
+      }
+    } catch (e) {
+      console.error('Android update check failed', e);
+    }
+  }
+
+  function showAndroidUpdateBanner(version, downloadUrl) {
+    const banner = document.getElementById('androidUpdateBanner');
+    if (banner) {
+      document.getElementById('androidUpdateVersion').textContent = version;
+      banner.dataset.url = downloadUrl;
+      banner.style.display = 'flex';
+    }
+  }
+
+  async function downloadAndInstallApk(url) {
+    const btn = document.getElementById('androidUpdateBtn');
+    const prog = document.getElementById('androidUpdateProgress');
+    if (btn) btn.disabled = true;
+    if (prog) prog.style.display = 'inline';
+    try {
+      showToast('APK wird heruntergeladen…', 'info');
+      // Fetch APK as base64
+      const resp = await fetch(url);
+      const buffer = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      const base64 = btoa(binary);
+
+      const { Filesystem, Directory } = await import('./node_modules/@capacitor/filesystem/dist/esm/index.js').catch(() => null) || {};
+      if (!Filesystem) {
+        showToast('Filesystem-Plugin nicht verfügbar', 'error');
+        return;
+      }
+      const result = await Filesystem.writeFile({
+        path: APK_FILENAME,
+        data: base64,
+        directory: Directory.Cache
+      });
+
+      const { FileOpener } = await import('./node_modules/@capacitor-community/file-opener/dist/esm/index.js').catch(() => null) || {};
+      if (!FileOpener) {
+        showToast('FileOpener-Plugin nicht verfügbar', 'error');
+        return;
+      }
+      await FileOpener.open({
+        filePath: result.uri,
+        contentType: 'application/vnd.android.package-archive'
+      });
+    } catch (e) {
+      console.error('APK download/install failed', e);
+      showToast('Installation fehlgeschlagen: ' + e.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+      if (prog) prog.style.display = 'none';
+    }
+  }
+
+  // Check on startup (with slight delay to let app load)
+  setTimeout(checkAndroidUpdate, 3000);
+}
 </script>
 
 <!-- Electron update banner (hidden until update is downloaded) -->
@@ -2655,6 +2739,25 @@ if (window.electronAPI) {
     Jetzt neu starten
   </button>
   <button onclick="document.getElementById('updateBanner').style.display='none'" style="
+    background:transparent; color:rgba(255,255,255,0.7); border:none;
+    font-size:18px; cursor:pointer; line-height:1">✕</button>
+</div>
+
+<!-- Android update banner (hidden until update is detected) -->
+<div id="androidUpdateBanner" style="
+  display:none; position:fixed; bottom:0; left:0; right:0; z-index:9999;
+  background:#1a7a4a; color:#fff; padding:10px 20px;
+  align-items:center; gap:12px; font-size:13px; font-family:'DM Sans',sans-serif;
+  box-shadow:0 -2px 12px rgba(0,0,0,0.3)">
+  <div style="flex:1">
+    🔄 Version <strong id="androidUpdateVersion"></strong> verfügbar — APK herunterladen und installieren
+  </div>
+  <button id="androidUpdateBtn" onclick="downloadAndInstallApk(this.closest('[data-url]').dataset.url)" style="
+    background:#fff; color:#1a7a4a; border:none; border-radius:6px;
+    padding:5px 14px; font-size:13px; font-weight:600; cursor:pointer">
+    Jetzt aktualisieren <span id="androidUpdateProgress" style="display:none">⏳</span>
+  </button>
+  <button onclick="document.getElementById('androidUpdateBanner').style.display='none'" style="
     background:transparent; color:rgba(255,255,255,0.7); border:none;
     font-size:18px; cursor:pointer; line-height:1">✕</button>
 </div>
