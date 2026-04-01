@@ -827,6 +827,12 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+
+  .machine-list-item-active {
+    border-color: var(--accent);
+    background: var(--bg-badge);
   }
 
   .machine-icon-wrap {
@@ -1283,32 +1289,12 @@
 
     <div class="section-title" style="margin-bottom:10px">Maschinen</div>
     <div id="machineListContainer"></div>
-    <button class="btn btn-secondary mt-8" onclick="showAddMachine()">+ Maschine hinzufügen</button>
-
-    <div id="addMachineForm" class="add-machine-form hidden mt-8">
-      <div class="section-title" style="margin-bottom:10px">Neue Maschine</div>
-      <div class="add-machine-form field-grid-2">
-        <div class="field-group">
-          <label class="field-label">Name</label>
-          <input type="text" id="newMachineName" placeholder="z.B. SL 200">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Typ</label>
-          <input type="text" id="newMachineType" placeholder="z.B. Drehmaschine">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Max. Werkzeugplätze</label>
-          <input type="number" id="newMachineMaxTools" value="12" min="1" max="99">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Dateierweiterung</label>
-          <input type="text" id="newMachineExt" placeholder=".dre">
-        </div>
-      </div>
-      <div class="flex-row">
-        <button class="btn btn-primary" onclick="saveNewMachine()">Speichern</button>
-        <button class="btn btn-secondary" onclick="hideAddMachine()">Abbrechen</button>
-      </div>
+    <div id="machineChangeHint" style="display:none;margin-top:10px;padding:10px 14px;
+      background:var(--bg-badge-yellow);border-radius:var(--radius-sm);
+      border-left:3px solid #e0ac40;font-size:13px;color:var(--text-badge-yellow)">
+      ⚠ Maschine gewechselt — Datei muss neu analysiert werden.
+      <button class="btn btn-secondary" style="margin-left:10px;font-size:12px;padding:3px 10px"
+        onclick="reanalyzeAfterMachineChange()">Jetzt neu analysieren</button>
     </div>
 
     <hr class="divider">
@@ -2669,19 +2655,43 @@ function onModalOverlayClick(e) {
 
 function renderMachineList() {
   const container = document.getElementById('machineListContainer');
-  container.innerHTML = state.machines.map((m, i) => `
-    <div class="machine-list-item">
-      <div class="machine-icon-wrap">⚙</div>
+  container.innerHTML = state.machines.map(m => {
+    const isActive = m.id === state.activeMachineId;
+    return `<div class="machine-list-item${isActive ? ' machine-list-item-active' : ''}">
+      <div class="machine-icon-wrap" style="${isActive ? 'color:var(--accent);font-size:16px' : ''}">
+        ${isActive ? '✓' : '⚙'}
+      </div>
       <div class="machine-info">
         <div class="machine-name-text">${esc(m.name)}</div>
         <div class="machine-meta-text">${esc(m.type || 'Maschine')} · ${m.maxTools} Werkzeugplätze · ${esc(m.ext || '.nc')}</div>
       </div>
-    </div>
-  `).join('');
+      ${!isActive ? `<button class="btn btn-secondary" style="font-size:12px;padding:3px 10px;flex-shrink:0"
+        onclick="switchActiveMachine('${m.id}')">Auswählen</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function switchActiveMachine(machineId) {
+  if (machineId === state.activeMachineId) return;
+  state.activeMachineId = machineId;
+  persist();
+  renderMachineList();
+  renderToolLibForm();
+  updateMachineDisplay();
+  // Show re-analyze hint only if a file is loaded
+  const hint = document.getElementById('machineChangeHint');
+  if (hint) hint.style.display = state.rawText ? '' : 'none';
+}
+
+function reanalyzeAfterMachineChange() {
+  const hint = document.getElementById('machineChangeHint');
+  if (hint) hint.style.display = 'none';
+  closeSettings();
+  if (state.rawText) parseFile();
 }
 
 function showAddMachine() {
-  document.getElementById('addMachineForm').classList.remove('hidden');
+  document.getElementById('addMachineForm')?.classList.remove('hidden');
 }
 
 function hideAddMachine() {
