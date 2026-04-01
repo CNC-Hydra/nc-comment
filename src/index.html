@@ -20,10 +20,11 @@
     --bg-badge: #e0edff;
     --bg-badge-green: #e0f5e9;
     --bg-badge-yellow: #fff8e0;
-    --bg-dark: #1e2535;
-    --bg-dark2: #151c2b;
-    --bg-dark-row: rgba(255,255,255,0.04);
-    --bg-dark-row-alt: rgba(255,255,255,0.07);
+    /* Light-mode values for "dark" elements (display card, NC viewer) */
+    --bg-dark: #eef1f6;
+    --bg-dark2: #e4e8ee;
+    --bg-dark-row: rgba(0,0,0,0.02);
+    --bg-dark-row-alt: rgba(0,0,0,0.04);
 
     --text-primary: #1a1a1a;
     --text-secondary: #5a5a5a;
@@ -32,17 +33,17 @@
     --text-badge: #1a4ca8;
     --text-badge-green: #1a6635;
     --text-badge-yellow: #7a5500;
-    --text-dark-primary: #e8edf5;
-    --text-dark-secondary: #8a96a8;
-    --text-dark-accent: #5aacff;
-    --text-dark-muted: #505a6a;
+    --text-dark-primary: #1a1e2a;
+    --text-dark-secondary: #4a5568;
+    --text-dark-accent: #0060d0;
+    --text-dark-muted: #7a8599;
 
     --border-color: #d8d8d8;
     --border-input: #c8c8c8;
     --border-focus: #0060d0;
     --border-drop: #a0c0f0;
     --border-drop-active: #0060d0;
-    --border-dark: rgba(255,255,255,0.08);
+    --border-dark: rgba(0,0,0,0.09);
 
     --accent: #0060d0;
     --accent-hover: #0050b8;
@@ -144,6 +145,17 @@
 
   .topbar-brand span {
     color: var(--accent);
+  }
+
+  .topbar-brand em {
+    font-style: normal;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 6px;
+    letter-spacing: 0;
+    vertical-align: middle;
+    opacity: 0.8;
   }
 
   .topbar-file {
@@ -453,7 +465,7 @@
     box-shadow: 0 0 0 2px rgba(0,96,208,0.10) !important;
   }
 
-  .lib-save-btn {
+  .lib-save-btn, .lib-load-btn {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -463,8 +475,57 @@
     padding: 2px 4px;
   }
 
-  .lib-save-btn:hover { opacity: 1; transform: scale(1.2); }
+  .lib-save-btn:hover, .lib-load-btn:hover { opacity: 1; transform: scale(1.2); }
   .lib-save-btn.saved { opacity: 1; filter: hue-rotate(90deg); }
+  .lib-load-btn { opacity: 0.35; }
+  .lib-load-btn.has-entries { opacity: 0.85; }
+
+  .lib-picker-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    transition: background 0.1s;
+  }
+  .lib-picker-item:last-child { border-bottom: none; }
+  .lib-picker-item:hover { background: var(--primary-light, rgba(0,96,208,0.08)); }
+
+  .lib-slot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .lib-slot-btn {
+    min-width: 60px;
+    font-size: 12px;
+    padding: 4px 8px;
+    position: relative;
+  }
+  .lib-slot-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 10px;
+    min-width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+  .lib-slot-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 
   .empty-state {
     text-align: center;
@@ -676,13 +737,28 @@
 
   .nc-line-code { flex: 1; white-space: pre; }
 
-  /* Token colors */
+  /* Token colors (dark defaults) */
   .nc-tok-comment { color: #4e9e64; font-style: italic; }
   .nc-tok-n       { color: #c8a84a; font-weight: 600; }
   .nc-tok-t       { color: #b07cff; font-weight: 600; }
   .nc-tok-g       { color: #5aacff; }
   .nc-tok-m       { color: #ff8c5a; }
   .nc-tok-skip    { color: #505a6a; }
+
+  /* Light mode overrides for NC viewer */
+  @media (prefers-color-scheme: light) {
+    .nc-viewer-line:hover            { background: rgba(0,0,0,0.04); }
+    .nc-viewer-line.nc-line-has-t    { background: rgba(0,96,208,0.05); }
+    .nc-viewer-line.nc-line-has-t:hover { background: rgba(0,96,208,0.10); }
+    .nc-line-num                     { color: #a0aab8; }
+    .nc-tok-comment { color: #2e8048; }
+    .nc-tok-n       { color: #9a6c10; }
+    .nc-tok-t       { color: #7c3dd0; }
+    .nc-tok-g       { color: #0060d0; }
+    .nc-tok-m       { color: #c84010; }
+    .nc-tok-skip    { color: #9aa0b0; }
+    .display-tool-row { border-bottom-color: rgba(0,0,0,0.07); }
+  }
 
   /* ─── NC PREVIEW ─── */
   .nc-preview {
@@ -1020,7 +1096,7 @@
 
 <!-- TOP BAR -->
 <header class="topbar">
-  <div class="topbar-brand">NC<span>Kommentar</span></div>
+  <div class="topbar-brand">NC<span>Kommentar</span><em id="appVersionTag">v1.0.0</em></div>
   <div class="topbar-file" id="topbarFile">Kein Programm geladen</div>
   <div class="machine-wrap">
     <span class="machine-label">Maschine:</span>
@@ -1091,7 +1167,7 @@
               <th style="width:70px">T-Nr.</th>
               <th style="width:60px">Korr.</th>
               <th>Bezeichnung</th>
-              <th style="width:80px;text-align:center">Bibliothek</th>
+              <th style="width:96px;text-align:center">Bibliothek</th>
               <th style="width:40px"></th>
             </tr></thead>
             <tbody id="toolTableBody">
@@ -1239,10 +1315,23 @@
 
     <div class="section-title" style="margin-bottom:6px">Werkzeugbibliothek</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
-      Häufig verwendete Werkzeuge für <strong id="libMachineName">diese Maschine</strong>. Werden beim Laden automatisch vorgeschlagen.
+      Gespeicherte Werkzeuge für <strong id="libMachineName">diese Maschine</strong>. Über den 📖-Button in der Werkzeugliste laden.
     </div>
-    <div id="toolLibContainer"></div>
-    <button class="btn btn-primary mt-8" onclick="saveToolLibrary()">Bibliothek speichern</button>
+
+    <!-- Slot overview -->
+    <div id="libSlotOverview">
+      <div id="toolLibContainer"></div>
+    </div>
+
+    <!-- Slot detail view -->
+    <div id="libSlotDetail" style="display:none">
+      <input type="hidden" id="libSlotDetailKey">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <button class="btn btn-secondary" style="font-size:12px;padding:3px 10px" onclick="closeLibrarySlotEditor()">← Zurück</button>
+        <span class="section-title" id="libSlotDetailTitle" style="margin:0;font-size:14px"></span>
+      </div>
+      <div id="libSlotDetailEntries"></div>
+    </div>
   </div>
 </div>
 
@@ -1289,7 +1378,7 @@ const META_LABELS = {
 const state = {
   machines: [],
   activeMachineId: null,
-  toolLibrary: {},      // { machineId: { '01': 'desc', ... } }
+  toolLibrary: {},      // { machineId: { '01': ['desc1','desc2',...], ... } }
 
   // per-file
   fileName: null,
@@ -1336,6 +1425,14 @@ function getActiveMachine() {
 
 function getLibrary(machineId) {
   return state.toolLibrary[machineId] || {};
+}
+
+// Returns the entries array for one tool slot (migrates old string format)
+function getLibraryEntries(machineId, key) {
+  const lib = state.toolLibrary[machineId] || {};
+  const val = lib[key];
+  if (!val) return [];
+  return Array.isArray(val) ? [...val] : [val];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1463,7 +1560,6 @@ function parseFile() {
     state.hasMarker  = false;
     state.tools      = extractTNumbers(text);
     state.toolChanges = null;
-    applyLibraryToTools(state.tools);
     state.meta        = parseHeader(text);
     state.customFields = [];
   }
@@ -1969,7 +2065,6 @@ function renderChangesBanner() {
 }
 
 function buildToolRows(tools) {
-  const lib = getLibrary(state.activeMachineId);
   if (!tools.length) {
     return `<tr><td colspan="5"><div class="empty-state" style="padding:24px"><div class="empty-icon">🔧</div><div class="empty-text">Keine Werkzeuge</div></div></td></tr>`;
   }
@@ -1981,8 +2076,6 @@ function buildToolRows(tools) {
   });
 
   return sorted.map(t => {
-    const libDesc = lib[t.key] || '';
-    const ph = libDesc ? `Bibliothek: ${esc(libDesc)}` : 'Bezeichnung...';
     const rowClass = t._new ? 'tool-row-new' : t._removed ? 'tool-row-removed' : '';
     const statusBadge = t._new
       ? `<span class="change-chip change-chip-new" style="font-size:10px">NEU</span>`
@@ -1991,12 +2084,16 @@ function buildToolRows(tools) {
         : '';
     const k = t.key;
     const tLabel = t.spindle ? `T${t.num}-${t.spindle}` : `T${t.num}`;
+    const hasLibEntries = getLibraryEntries(state.activeMachineId, k).length > 0;
 
     const mainRow = `<tr data-tool-key="${k}" class="${rowClass}">
       <td><span class="t-chip">${tLabel}</span></td>
       <td><span class="corr-chip">${t.corr}</span>${statusBadge}</td>
-      <td><input type="text" class="tool-desc-input" value="${esc(t.desc)}" placeholder="${ph}" oninput="onToolDescInput(this,'${k}')"></td>
-      <td style="text-align:center"><button class="lib-save-btn" title="In Bibliothek speichern" onclick="saveToolToLibrary('${k}',this)">☁</button></td>
+      <td><input type="text" class="tool-desc-input" value="${esc(t.desc)}" placeholder="Bezeichnung..." oninput="onToolDescInput(this,'${k}')"></td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="lib-save-btn" title="In Bibliothek speichern" onclick="saveToolToLibrary('${k}',this)">☁</button>
+        <button class="lib-load-btn${hasLibEntries ? ' has-entries' : ''}" title="Aus Bibliothek laden" onclick="showLibraryPicker('${k}',this)">📖</button>
+      </td>
       <td><button class="btn btn-danger" style="padding:2px 6px;font-size:12px" onclick="removeTool('${k}')">✕</button></td>
     </tr>`;
 
@@ -2041,7 +2138,7 @@ function buildSingleTable(tbodyId, tools) {
         <th style="width:70px">T-Nr.</th>
         <th style="width:60px">Korr.</th>
         <th>Bezeichnung</th>
-        <th style="width:80px;text-align:center">Bibliothek</th>
+        <th style="width:96px;text-align:center">Bibliothek</th>
         <th style="width:40px"></th>
       </tr></thead>
       <tbody id="${tbodyId}">${buildToolRows(tools)}</tbody>
@@ -2068,7 +2165,7 @@ function renderToolTable() {
         <table class="tool-table">
           <thead><tr>
             <th style="width:70px">T-Nr.</th><th style="width:60px">Korr.</th>
-            <th>Bezeichnung</th><th style="width:72px;text-align:center">Bibl.</th><th style="width:36px"></th>
+            <th>Bezeichnung</th><th style="width:88px;text-align:center">Bibl.</th><th style="width:36px"></th>
           </tr></thead>
           <tbody id="toolTableBodyHS">${buildToolRows(hs)}</tbody>
         </table>
@@ -2078,7 +2175,7 @@ function renderToolTable() {
         <table class="tool-table">
           <thead><tr>
             <th style="width:70px">T-Nr.</th><th style="width:60px">Korr.</th>
-            <th>Bezeichnung</th><th style="width:72px;text-align:center">Bibl.</th><th style="width:36px"></th>
+            <th>Bezeichnung</th><th style="width:88px;text-align:center">Bibl.</th><th style="width:36px"></th>
           </tr></thead>
           <tbody id="toolTableBodyGS">${buildToolRows(gs)}</tbody>
         </table>
@@ -2215,20 +2312,76 @@ function addToolRow() {
 function saveToolToLibrary(key, btn) {
   const tool = state.tools.find(t => t.key === key);
   if (!tool) return;
-  // Get current description from input
+  // Read current value from input field
   const row = document.querySelector(`#toolTableContainer tr[data-tool-key="${key}"]`);
   if (row) {
     const input = row.querySelector('.tool-desc-input');
     if (input) tool.desc = input.value.trim();
   }
+  if (!tool.desc) { showToast('Keine Bezeichnung vorhanden', 'error'); return; }
+
   if (!state.toolLibrary[state.activeMachineId]) state.toolLibrary[state.activeMachineId] = {};
-  state.toolLibrary[state.activeMachineId][key] = tool.desc;
-  persist();
+  const entries = getLibraryEntries(state.activeMachineId, key);
+  if (entries.includes(tool.desc)) {
+    showToast('Bereits in der Bibliothek vorhanden', 'info');
+  } else {
+    entries.push(tool.desc);
+    state.toolLibrary[state.activeMachineId][key] = entries;
+    persist();
+    const label = tool.spindle ? `T${tool.num}-${tool.spindle}` : `T${tool.num}`;
+    showToast(`${label} in Bibliothek gespeichert`, 'success');
+  }
   btn.textContent = '✓';
   btn.classList.add('saved');
   setTimeout(() => { btn.textContent = '☁'; btn.classList.remove('saved'); }, 1800);
-  const label = tool.spindle ? `T${tool.num}-${tool.spindle}` : `T${tool.num}`;
-  showToast(`${label} in Bibliothek gespeichert`, 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+// LIBRARY PICKER (dropdown next to 📖 button)
+// ═══════════════════════════════════════════════════════════
+let _libPickerKey = null;
+let _libPickerEntries = [];
+
+function showLibraryPicker(key, btn) {
+  const entries = getLibraryEntries(state.activeMachineId, key);
+  if (!entries.length) {
+    showToast('Keine Bibliothekseinträge vorhanden', 'info');
+    return;
+  }
+  _libPickerKey = key;
+  _libPickerEntries = entries;
+
+  const dropdown = document.getElementById('libPickerDropdown');
+  dropdown.innerHTML = entries.map((e, idx) =>
+    `<div class="lib-picker-item" onclick="applyLibraryEntry(${idx})">${esc(e)}</div>`
+  ).join('');
+
+  const rect = btn.getBoundingClientRect();
+  dropdown.style.left = Math.min(rect.left, window.innerWidth - 220) + 'px';
+  dropdown.style.top  = (rect.bottom + 4) + 'px';
+  dropdown.style.display = '';
+
+  setTimeout(() => document.addEventListener('click', _closeLibPickerOutside, { once: true }), 0);
+}
+
+function _closeLibPickerOutside(e) {
+  const dd = document.getElementById('libPickerDropdown');
+  if (dd && !dd.contains(e.target)) dd.style.display = 'none';
+}
+
+function applyLibraryEntry(idx) {
+  const desc = _libPickerEntries[idx];
+  if (!desc || !_libPickerKey) return;
+  const tool = state.tools.find(t => t.key === _libPickerKey);
+  if (tool) {
+    tool.desc = desc;
+    const row = document.querySelector(`#toolTableContainer tr[data-tool-key="${_libPickerKey}"]`);
+    if (row) {
+      const input = row.querySelector('.tool-desc-input');
+      if (input) input.value = desc;
+    }
+  }
+  document.getElementById('libPickerDropdown').style.display = 'none';
 }
 
 function renderMetaForm() {
@@ -2473,9 +2626,6 @@ function renderMachineList() {
         <div class="machine-name-text">${esc(m.name)}</div>
         <div class="machine-meta-text">${esc(m.type || 'Maschine')} · ${m.maxTools} Werkzeugplätze · ${esc(m.ext || '.nc')}</div>
       </div>
-      ${state.machines.length > 1
-        ? `<button class="btn btn-danger" style="font-size:12px;padding:3px 8px" onclick="deleteMachine(${i})">Löschen</button>`
-        : ''}
     </div>
   `).join('');
 }
@@ -2521,37 +2671,106 @@ function deleteMachine(index) {
 // TOOL LIBRARY IN SETTINGS
 // ═══════════════════════════════════════════════════════════
 function renderToolLibForm() {
-  const machine  = getActiveMachine();
-  const lib      = getLibrary(state.activeMachineId);
-  const maxTools = machine.maxTools || 12;
+  const machine = getActiveMachine();
   document.getElementById('libMachineName').textContent = machine.name;
 
+  // Show slot overview, hide detail
+  document.getElementById('libSlotOverview').style.display = '';
+  document.getElementById('libSlotDetail').style.display   = 'none';
+
+  const split    = machine.spindelSplit;
+  const maxTools = machine.maxTools || 12;
+
+  const slotBtn = (key, label) => {
+    const count = getLibraryEntries(state.activeMachineId, key).length;
+    return `<button class="btn btn-secondary lib-slot-btn" onclick="openLibrarySlotEditor('${key}')">
+      ${label}${count > 0 ? `<span class="lib-slot-badge">${count}</span>` : ''}
+    </button>`;
+  };
+
   let html = '';
-  for (let i = 1; i <= maxTools; i++) {
-    const num = String(i).padStart(2, '0');
-    const val = lib[num] || '';
-    html += `<div class="custom-field-row" style="margin-bottom:6px">
-      <div class="t-chip" style="width:40px;text-align:center">T${num}</div>
-      <input type="text" id="libInput_${num}" value="${esc(val)}" placeholder="Bezeichnung...">
-    </div>`;
+  if (split) {
+    html += `<div class="lib-slot-group-label">Hauptspindel</div>
+             <div class="lib-slot-grid">`;
+    for (let i = 1; i <= split; i++) {
+      const num = String(i).padStart(2, '0');
+      html += slotBtn(`${num}-HS`, `T${num}`);
+    }
+    html += `</div>
+             <div class="lib-slot-group-label" style="margin-top:12px">Gegenspindel</div>
+             <div class="lib-slot-grid">`;
+    for (let i = 1; i <= split; i++) {
+      const num = String(i).padStart(2, '0');
+      html += slotBtn(`${num}-GS`, `T${num}`);
+    }
+    html += `</div>`;
+  } else {
+    html += `<div class="lib-slot-grid">`;
+    for (let i = 1; i <= maxTools; i++) {
+      const num = String(i).padStart(2, '0');
+      html += slotBtn(num, `T${num}`);
+    }
+    html += `</div>`;
   }
+
   document.getElementById('toolLibContainer').innerHTML = html;
 }
 
-function saveToolLibrary() {
-  const machine  = getActiveMachine();
-  const maxTools = machine.maxTools || 12;
-  const lib = {};
-  for (let i = 1; i <= maxTools; i++) {
-    const num = String(i).padStart(2, '0');
-    const el  = document.getElementById(`libInput_${num}`);
-    if (el && el.value.trim()) lib[num] = el.value.trim();
+function openLibrarySlotEditor(slotKey) {
+  document.getElementById('libSlotOverview').style.display = 'none';
+  document.getElementById('libSlotDetail').style.display   = '';
+  const label = slotKey.includes('-') ? `T${slotKey.split('-')[0]}-${slotKey.split('-')[1]}` : `T${slotKey}`;
+  document.getElementById('libSlotDetailTitle').textContent = `${label} — Bibliothek`;
+  document.getElementById('libSlotDetailKey').value = slotKey;
+  renderLibrarySlotEntries(slotKey);
+}
+
+function closeLibrarySlotEditor() {
+  renderToolLibForm(); // re-renders overview with updated counts
+}
+
+function renderLibrarySlotEntries(slotKey) {
+  const entries   = getLibraryEntries(state.activeMachineId, slotKey);
+  const container = document.getElementById('libSlotDetailEntries');
+
+  if (!entries.length) {
+    container.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:12px 0">Keine Einträge vorhanden.</div>`;
+    return;
   }
-  state.toolLibrary[state.activeMachineId] = lib;
+
+  container.innerHTML = entries.map((entry, idx) => `
+    <div class="custom-field-row" style="margin-bottom:6px">
+      <input type="text" id="libSlotInput_${idx}" value="${esc(entry)}" placeholder="Bezeichnung...">
+      <button class="btn btn-secondary" style="font-size:12px;padding:3px 8px;white-space:nowrap" onclick="saveLibrarySlotEntry('${slotKey}',${idx})">✓ Speichern</button>
+      <button class="btn btn-danger"    style="font-size:12px;padding:3px 8px" onclick="deleteLibrarySlotEntry('${slotKey}',${idx})">✕</button>
+    </div>
+  `).join('');
+}
+
+function saveLibrarySlotEntry(slotKey, idx) {
+  const input = document.getElementById(`libSlotInput_${idx}`);
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) { showToast('Bezeichnung darf nicht leer sein', 'error'); return; }
+  const entries = getLibraryEntries(state.activeMachineId, slotKey);
+  entries[idx] = val;
+  if (!state.toolLibrary[state.activeMachineId]) state.toolLibrary[state.activeMachineId] = {};
+  state.toolLibrary[state.activeMachineId][slotKey] = entries;
   persist();
-  showToast('Werkzeugbibliothek gespeichert', 'success');
-  // Re-apply library suggestions to current tools
-  if (state.tools.length) applyLibraryToTools(state.tools);
+  showToast('Eintrag gespeichert', 'success');
+}
+
+function deleteLibrarySlotEntry(slotKey, idx) {
+  const entries = getLibraryEntries(state.activeMachineId, slotKey);
+  entries.splice(idx, 1);
+  if (!state.toolLibrary[state.activeMachineId]) state.toolLibrary[state.activeMachineId] = {};
+  if (entries.length === 0) {
+    delete state.toolLibrary[state.activeMachineId][slotKey];
+  } else {
+    state.toolLibrary[state.activeMachineId][slotKey] = entries;
+  }
+  persist();
+  renderLibrarySlotEntries(slotKey);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2617,8 +2836,10 @@ updateMachineDisplay();
 // ═══════════════════════════════════════════════════════════
 if (window.electronAPI) {
   window.electronAPI.getVersion().then(v => {
-    const el = document.querySelector('.topbar-brand');
-    if (el) el.title = 'Version ' + v;
+    const tag = document.getElementById('appVersionTag');
+    if (tag) tag.textContent = 'v' + v;
+    const brand = document.querySelector('.topbar-brand');
+    if (brand) brand.dataset.version = v;
   });
 
   window.electronAPI.onUpdateAvailable(version => {
@@ -2742,6 +2963,11 @@ if (window.Capacitor) {
     background:transparent; color:rgba(255,255,255,0.7); border:none;
     font-size:18px; cursor:pointer; line-height:1">✕</button>
 </div>
+
+<!-- Library picker dropdown -->
+<div id="libPickerDropdown" style="display:none;position:fixed;z-index:10000;
+  background:var(--card-bg);border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.25);min-width:200px;max-width:300px;overflow:hidden;"></div>
 
 <!-- Android update banner (hidden until update is detected) -->
 <div id="androidUpdateBanner" style="
