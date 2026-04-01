@@ -22,5 +22,5 @@ nsis:
 
 publish:
   provider: github
-  owner:    DEIN_GITHUB_USERNAME    # ← hier anpassen
+  owner:    CNC-Hydra
   repo:     nc-comment
