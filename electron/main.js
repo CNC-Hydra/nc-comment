@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const { autoUpdater }                  = require('electron-updater');
 const log                              = require('electron-log');
 const path                             = require('path');
+const fs                               = require('fs');
 
 // ── Logging ──────────────────────────────────────────────────
 autoUpdater.logger = log;
@@ -66,3 +67,28 @@ autoUpdater.on('update-downloaded', info => {
 ipcMain.handle('install-update',    () => autoUpdater.quitAndInstall());
 ipcMain.handle('check-for-updates', () => autoUpdater.checkForUpdates());
 ipcMain.handle('get-version',       () => app.getVersion());
+
+// ── Library Sync (UNC path) ───────────────────────────────────
+ipcMain.handle('read-library', async (_e, uncPath) => {
+  try {
+    const filePath = path.join(uncPath, 'bibliothek.json');
+    if (!fs.existsSync(filePath)) return { success: false, error: 'Datei nicht gefunden' };
+    const data = fs.readFileSync(filePath, 'utf8');
+    return { success: true, data };
+  } catch (e) {
+    log.error('read-library error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('write-library', async (_e, uncPath, content) => {
+  try {
+    if (!fs.existsSync(uncPath)) fs.mkdirSync(uncPath, { recursive: true });
+    const filePath = path.join(uncPath, 'bibliothek.json');
+    fs.writeFileSync(filePath, content, 'utf8');
+    return { success: true };
+  } catch (e) {
+    log.error('write-library error:', e.message);
+    return { success: false, error: e.message };
+  }
+});

@@ -1332,6 +1332,53 @@
       </div>
       <div id="libSlotDetailEntries"></div>
     </div>
+
+    <hr class="divider">
+
+    <div class="section-title" style="margin-bottom:6px">Netzwerk-Sync</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">
+      Bibliothek automatisch mit der Synology synchronisieren.
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <input type="checkbox" id="syncEnabled" onchange="onSyncEnabledChange(this)" style="width:16px;height:16px;cursor:pointer">
+      <label for="syncEnabled" style="font-size:13px;cursor:pointer">Sync aktiviert</label>
+    </div>
+
+    <div id="syncConfigBody">
+      <div id="syncUncSection">
+        <div class="field-group" style="margin-bottom:8px">
+          <label class="field-label">UNC-Pfad (Windows)</label>
+          <input type="text" id="syncUncPath" placeholder="\\SERVER\share\ordner">
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:8px">
+        <label class="field-label">Synology URL</label>
+        <input type="text" id="syncSynoUrl" placeholder="http://192.168.2.10:5000">
+      </div>
+      <div class="add-machine-form field-grid-2" style="margin-bottom:8px">
+        <div class="field-group">
+          <label class="field-label">Benutzername</label>
+          <input type="text" id="syncSynoUser">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Passwort</label>
+          <input type="password" id="syncSynoPass">
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:12px">
+        <label class="field-label">Dateipfad auf Synology</label>
+        <input type="text" id="syncSynoFilePath" placeholder="/stammdaten/DREHEN/.../bibliothek.json">
+      </div>
+      <div class="flex-row" style="margin-bottom:8px;flex-wrap:wrap;gap:6px">
+        <button class="btn btn-primary"   onclick="saveSyncSettings()">Speichern</button>
+        <button class="btn btn-secondary" onclick="testSyncConnection()">Verbindung testen</button>
+        <button class="btn btn-secondary" onclick="syncLibrary(true)">Jetzt synchronisieren</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted)">
+        Letzter Sync: <span id="syncStatusText" style="font-weight:500">—</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1351,10 +1398,11 @@ const MARKER_END   = '(NC-KOMMENTAR-ENDE)';
 const LS_MACHINES  = 'nc_comment_machines';
 const LS_LIBRARY   = 'nc_comment_library';
 const LS_MACHINE   = 'nc_comment_active_machine';
+const LS_SYNC      = 'nc_comment_sync';
 
 const DEFAULT_MACHINES = [
   { id: 'sl200',   name: 'SL 200',   type: 'Drehmaschine', maxTools: 12, ext: '.dre' },
-  { id: 'nl2000',  name: 'NL 2000',  type: 'Drehmaschine', maxTools: 12, ext: '.nc'  },
+  { id: 'nl2000',  name: 'NL 2000',  type: 'Drehmaschine', maxTools: 28, ext: '.nc',  spindelSplit: 16, hsSlots: 12 },
   { id: 'nl1500',  name: 'NL 1500',  type: 'Drehmaschine', maxTools: 40, ext: '.nc',  spindelSplit: 20 },
   { id: 'nlx2000', name: 'NLX 2000', type: 'Drehmaschine', maxTools: 40, ext: '.nc',  spindelSplit: 20 }
 ];
@@ -2330,6 +2378,7 @@ function saveToolToLibrary(key, btn) {
     persist();
     const label = tool.spindle ? `T${tool.num}-${tool.spindle}` : `T${tool.num}`;
     showToast(`${label} in Bibliothek gespeichert`, 'success');
+    syncLibrary(false);
   }
   btn.textContent = '✓';
   btn.classList.add('saved');
@@ -2606,6 +2655,7 @@ function switchTab(name) {
 function openSettings() {
   renderMachineList();
   renderToolLibForm();
+  renderSyncSettings();
   document.getElementById('settingsModal').classList.add('open');
 }
 
@@ -2690,16 +2740,17 @@ function renderToolLibForm() {
 
   let html = '';
   if (split) {
+    const slotCount = machine.hsSlots || split; // hsSlots overrides split for display
     html += `<div class="lib-slot-group-label">Hauptspindel</div>
              <div class="lib-slot-grid">`;
-    for (let i = 1; i <= split; i++) {
+    for (let i = 1; i <= slotCount; i++) {
       const num = String(i).padStart(2, '0');
       html += slotBtn(`${num}-HS`, `T${num}`);
     }
     html += `</div>
              <div class="lib-slot-group-label" style="margin-top:12px">Gegenspindel</div>
              <div class="lib-slot-grid">`;
-    for (let i = 1; i <= split; i++) {
+    for (let i = 1; i <= slotCount; i++) {
       const num = String(i).padStart(2, '0');
       html += slotBtn(`${num}-GS`, `T${num}`);
     }
@@ -2758,6 +2809,7 @@ function saveLibrarySlotEntry(slotKey, idx) {
   state.toolLibrary[state.activeMachineId][slotKey] = entries;
   persist();
   showToast('Eintrag gespeichert', 'success');
+  syncLibrary(false);
 }
 
 function deleteLibrarySlotEntry(slotKey, idx) {
@@ -2771,6 +2823,7 @@ function deleteLibrarySlotEntry(slotKey, idx) {
   }
   persist();
   renderLibrarySlotEntries(slotKey);
+  syncLibrary(false);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2783,6 +2836,231 @@ function updateMachineDisplay() {
 
 // Keep alias so existing settings-save calls work
 function renderMachineSelect() { updateMachineDisplay(); }
+
+// ═══════════════════════════════════════════════════════════
+// NETWORK SYNC
+// ═══════════════════════════════════════════════════════════
+const SYNC_DEFAULTS = {
+  enabled:      false,
+  uncPath:      '\\\\STR-SRV-01\\stammdaten\\DREHEN\\nc_code_bibliothek',
+  synoUrl:      'http://STR-SRV-01:5000',
+  synoUser:     'fertigung',
+  synoPass:     'Str-7478?',
+  synoFilePath: '/stammdaten/DREHEN/nc_code_bibliothek/bibliothek.json',
+  lastSync:     null,
+  lastSyncOk:   null
+};
+
+function getSyncConfig() {
+  try {
+    const s = localStorage.getItem(LS_SYNC);
+    return s ? { ...SYNC_DEFAULTS, ...JSON.parse(s) } : { ...SYNC_DEFAULTS };
+  } catch { return { ...SYNC_DEFAULTS }; }
+}
+
+function saveSyncConfig(cfg) {
+  localStorage.setItem(LS_SYNC, JSON.stringify(cfg));
+}
+
+function buildLibraryPayload() {
+  return JSON.stringify({
+    version:      1,
+    lastModified: new Date().toISOString(),
+    library:      state.toolLibrary
+  }, null, 2);
+}
+
+function mergeRemoteLibrary(remoteJson) {
+  try {
+    const remote = JSON.parse(remoteJson);
+    if (!remote.library) return false;
+    for (const mid of Object.keys(remote.library)) {
+      if (!state.toolLibrary[mid]) state.toolLibrary[mid] = {};
+      for (const key of Object.keys(remote.library[mid])) {
+        const remoteArr = Array.isArray(remote.library[mid][key])
+          ? remote.library[mid][key] : [remote.library[mid][key]];
+        const localArr  = getLibraryEntries(mid, key);
+        state.toolLibrary[mid][key] = [...new Set([...localArr, ...remoteArr])];
+      }
+    }
+    persist();
+    return true;
+  } catch (e) { console.error('mergeRemoteLibrary:', e); return false; }
+}
+
+// PC: read/write via Electron IPC → UNC path
+async function readLibraryUNC(cfg) {
+  const r = await window.electronAPI.readLibrary(cfg.uncPath);
+  if (!r.success) throw new Error(r.error);
+  return r.data;
+}
+async function writeLibraryUNC(cfg) {
+  const r = await window.electronAPI.writeLibrary(cfg.uncPath, buildLibraryPayload());
+  if (!r.success) throw new Error(r.error);
+}
+
+// Android: Synology File Station API
+async function synoLogin(cfg) {
+  const url = `${cfg.synoUrl}/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=login` +
+    `&account=${encodeURIComponent(cfg.synoUser)}&passwd=${encodeURIComponent(cfg.synoPass)}` +
+    `&session=FileStation&format=sid`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (!data.success) throw new Error('Login fehlgeschlagen (Code ' + (data.error?.code || '?') + ')');
+  return data.data.sid;
+}
+async function readLibrarySyno(cfg) {
+  const sid = await synoLogin(cfg);
+  const url = `${cfg.synoUrl}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download` +
+    `&path=${encodeURIComponent(cfg.synoFilePath)}&mode=open&_sid=${encodeURIComponent(sid)}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Download fehlgeschlagen (' + resp.status + ')');
+  return await resp.text();
+}
+async function writeLibrarySyno(cfg) {
+  const sid    = await synoLogin(cfg);
+  const folder = cfg.synoFilePath.substring(0, cfg.synoFilePath.lastIndexOf('/'));
+  const name   = cfg.synoFilePath.substring(cfg.synoFilePath.lastIndexOf('/') + 1);
+  const form   = new FormData();
+  form.append('api',            'SYNO.FileStation.Upload');
+  form.append('version',        '2');
+  form.append('method',         'upload');
+  form.append('path',           folder);
+  form.append('create_parents', 'true');
+  form.append('overwrite',      'true');
+  form.append('_sid',           sid);
+  form.append('file', new Blob([buildLibraryPayload()], { type: 'application/json' }), name);
+  const resp = await fetch(`${cfg.synoUrl}/webapi/entry.cgi`, { method: 'POST', body: form });
+  const data = await resp.json();
+  if (!data.success) throw new Error('Upload fehlgeschlagen (Code ' + (data.error?.code || '?') + ')');
+}
+
+async function syncLibrary(showFeedback = true) {
+  const cfg = getSyncConfig();
+  if (!cfg.enabled) return;
+  const isElectron  = !!window.electronAPI?.readLibrary;
+  const isCapacitor = !!window.Capacitor;
+  if (!isElectron && !isCapacitor) return;
+
+  try {
+    // 1. Read remote
+    let remoteData = null;
+    try {
+      remoteData = isElectron ? await readLibraryUNC(cfg) : await readLibrarySyno(cfg);
+    } catch (e) {
+      // File may not exist yet on first run — that's OK
+      if (!e.message.includes('nicht gefunden') && !e.message.includes('404') && !String(e.message).includes('1800')) {
+        throw e;
+      }
+    }
+    if (remoteData) mergeRemoteLibrary(remoteData);
+
+    // 2. Write merged library back
+    if (isElectron) await writeLibraryUNC(cfg);
+    else            await writeLibrarySyno(cfg);
+
+    cfg.lastSync  = new Date().toISOString();
+    cfg.lastSyncOk = true;
+    saveSyncConfig(cfg);
+    updateSyncStatusUI();
+    if (showFeedback) showToast('Bibliothek synchronisiert ✓', 'success');
+  } catch (e) {
+    cfg.lastSync   = new Date().toISOString();
+    cfg.lastSyncOk = false;
+    saveSyncConfig(cfg);
+    updateSyncStatusUI();
+    console.error('syncLibrary:', e);
+    if (showFeedback) showToast('Sync fehlgeschlagen: ' + e.message, 'error');
+  }
+}
+
+async function testSyncConnection() {
+  const cfg = getSyncConfig();
+  saveSyncSettingsFromForm();
+  showToast('Verbindung wird getestet…', 'info');
+  try {
+    if (window.electronAPI?.readLibrary) {
+      // Test UNC: try to stat the directory
+      const r = await window.electronAPI.readLibrary(cfg.uncPath);
+      if (r.success || r.error === 'Datei nicht gefunden') {
+        showToast('UNC-Pfad erreichbar ✓', 'success'); return;
+      }
+      throw new Error(r.error);
+    } else {
+      await synoLogin(cfg);
+      showToast('Synology-Login erfolgreich ✓', 'success');
+    }
+  } catch (e) {
+    showToast('Verbindung fehlgeschlagen: ' + e.message, 'error');
+  }
+}
+
+function updateSyncStatusUI() {
+  const el = document.getElementById('syncStatusText');
+  if (!el) return;
+  const cfg = getSyncConfig();
+  if (!cfg.lastSync) { el.textContent = 'Noch nicht synchronisiert'; el.style.color = ''; return; }
+  const d   = new Date(cfg.lastSync);
+  const ts  = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE');
+  el.textContent = cfg.lastSyncOk ? `✓ ${ts}` : `⚠ Fehler — ${ts}`;
+  el.style.color = cfg.lastSyncOk ? 'var(--success)' : 'var(--danger)';
+}
+
+function renderSyncSettings() {
+  const cfg = getSyncConfig();
+  const syncEnabled = document.getElementById('syncEnabled');
+  if (syncEnabled) syncEnabled.checked = cfg.enabled;
+
+  const fields = {
+    syncUncPath:     cfg.uncPath,
+    syncSynoUrl:     cfg.synoUrl,
+    syncSynoUser:    cfg.synoUser,
+    syncSynoPass:    cfg.synoPass,
+    syncSynoFilePath:cfg.synoFilePath
+  };
+  for (const [id, val] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el) el.value = val || '';
+  }
+
+  // UNC section only visible in Electron
+  const uncSection = document.getElementById('syncUncSection');
+  if (uncSection) uncSection.style.display = window.electronAPI ? '' : 'none';
+
+  const syncBody = document.getElementById('syncConfigBody');
+  if (syncBody) syncBody.style.display = cfg.enabled ? '' : 'none';
+
+  updateSyncStatusUI();
+}
+
+function saveSyncSettingsFromForm() {
+  const cfg = getSyncConfig();
+  const map = {
+    syncEnabled:     'enabled',
+    syncUncPath:     'uncPath',
+    syncSynoUrl:     'synoUrl',
+    syncSynoUser:    'synoUser',
+    syncSynoPass:    'synoPass',
+    syncSynoFilePath:'synoFilePath'
+  };
+  for (const [id, key] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    cfg[key] = el.type === 'checkbox' ? el.checked : el.value.trim();
+  }
+  saveSyncConfig(cfg);
+}
+
+function saveSyncSettings() {
+  saveSyncSettingsFromForm();
+  showToast('Sync-Einstellungen gespeichert', 'success');
+  renderSyncSettings();
+}
+
+function onSyncEnabledChange(cb) {
+  const body = document.getElementById('syncConfigBody');
+  if (body) body.style.display = cb.checked ? '' : 'none';
+}
 
 // ═══════════════════════════════════════════════════════════
 // UTILITIES
@@ -2830,6 +3108,8 @@ document.addEventListener('input', e => {
 // ═══════════════════════════════════════════════════════════
 loadPersistedState();
 updateMachineDisplay();
+// Auto-sync on startup (delayed so UI is ready first)
+setTimeout(() => syncLibrary(false), 2000);
 
 // ═══════════════════════════════════════════════════════════
 // ELECTRON AUTO-UPDATER (nur aktiv wenn in Electron)

@@ -12,5 +12,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Update events (renderer registers callbacks)
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_e, version) => cb(version)),
   onUpdateProgress:  (cb) => ipcRenderer.on('update-progress',  (_e, percent) => cb(percent)),
-  onUpdateDownloaded:(cb) => ipcRenderer.on('update-downloaded', (_e, version) => cb(version))
+  onUpdateDownloaded:(cb) => ipcRenderer.on('update-downloaded', (_e, version) => cb(version)),
+
+  // Library sync via UNC path
+  readLibrary:  (uncPath)          => ipcRenderer.invoke('read-library',  uncPath),
+  writeLibrary: (uncPath, content) => ipcRenderer.invoke('write-library', uncPath, content)
 });
