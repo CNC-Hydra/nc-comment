@@ -1434,6 +1434,13 @@ function loadPersistedState() {
     state.machines = m ? JSON.parse(m) : [...DEFAULT_MACHINES];
     if (!state.machines.length) state.machines = [...DEFAULT_MACHINES];
 
+    // Migrate built-in machine configs to latest DEFAULT_MACHINES
+    // (ensures updates like NL 2000 spindelSplit/hsSlots reach existing users)
+    state.machines = state.machines.map(machine => {
+      const def = DEFAULT_MACHINES.find(d => d.id === machine.id);
+      return def ? { ...def } : machine;
+    });
+
     const l = localStorage.getItem(LS_LIBRARY);
     state.toolLibrary = l ? JSON.parse(l) : {};
 
