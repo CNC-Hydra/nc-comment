@@ -444,6 +444,20 @@
     font-size: 12px;
     color: var(--text-muted);
   }
+  .corr-chip-nonstd {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: #e03131;
+    font-weight: 700;
+  }
+  .nonstd-section-header {
+    font-weight: 700;
+    color: #e03131;
+    font-size: 13px;
+    padding: 10px 12px 6px;
+    border-top: 2px solid #e0313133;
+    margin-top: 8px;
+  }
 
   .tool-desc-input {
     border: 1px solid transparent !important;
@@ -1150,7 +1164,7 @@
 
     <!-- TAB BAR -->
     <div class="tab-bar">
-      <div class="tab" data-tab="anzeige" onclick="switchTab('anzeige')">Anzeige</div>
+      <div class="tab" data-tab="anzeige" onclick="switchTab('anzeige')">Rüstplan</div>
       <div class="tab" data-tab="werkzeuge" onclick="switchTab('werkzeuge')">Werkzeuge</div>
       <div class="tab" data-tab="info" onclick="switchTab('info')">Programm-Info</div>
       <div class="tab" data-tab="nc" onclick="switchTab('nc')">NC Code</div>
@@ -1634,21 +1648,32 @@ function extractTNumbers(text) {
       const corrInt = parseInt(corr, 10);
 
       if (split) {
-        // For dual-spindle machines: T-number 01–20, correction 01–maxTools
-        if (numInt  < 1 || numInt  > split)    continue;
-        if (corrInt < 1 || corrInt > maxTools)  continue;
-        const spindle = corrInt <= split ? 'HS' : 'GS';
-        const key     = `${num}-${spindle}`;
-        if (!toolMap.has(key)) toolMap.set(key, { num, corr, spindle, key, hasActive: false });
-        const entry = toolMap.get(key);
-        entry.corr      = corr;
-        entry.hasActive = true;
+        // For dual-spindle machines: T-number 01–split, correction 01–maxTools (+ non-standard > maxTools)
+        if (numInt < 1 || numInt > split) continue;
+        if (corrInt < 1) continue;
+        if (corrInt > maxTools) {
+          // Non-standard correction — keep but mark separately
+          const key = `ns-${num}`;
+          if (!toolMap.has(key)) toolMap.set(key, { num, corr, spindle: 'NS', key, hasActive: false });
+          const entry = toolMap.get(key);
+          entry.corr      = corr;
+          entry.hasActive = true;
+        } else {
+          const spindle = corrInt <= split ? 'HS' : 'GS';
+          const key     = `${num}-${spindle}`;
+          if (!toolMap.has(key)) toolMap.set(key, { num, corr, spindle, key, hasActive: false });
+          const entry = toolMap.get(key);
+          entry.corr      = corr;
+          entry.hasActive = true;
+        }
       } else {
         // Standard machines: T-number 01–maxTools
         if (numInt < 1 || numInt > maxTools) continue;
         if (corr === '00') continue;
-        const key = num;
-        if (!toolMap.has(key)) toolMap.set(key, { num, corr, spindle: null, key, hasActive: false });
+        const isNonStd = corrInt > maxTools;
+        const key = isNonStd ? `ns-${num}` : num;
+        const spindle = isNonStd ? 'NS' : null;
+        if (!toolMap.has(key)) toolMap.set(key, { num, corr, spindle, key, hasActive: false });
         const entry = toolMap.get(key);
         entry.corr      = corr;
         entry.hasActive = true;
@@ -1656,15 +1681,14 @@ function extractTNumbers(text) {
     }
   }
 
+  const spRank = s => s === 'HS' ? 0 : s === 'GS' ? 1 : s === 'NS' ? 2 : 3;
   return Array.from(toolMap.values())
     .filter(t => t.hasActive)
     .map(t => ({ num: t.num, corr: t.corr, spindle: t.spindle, key: t.key, desc: '' }))
     .sort((a, b) => {
       const na = parseInt(a.num), nb = parseInt(b.num);
       if (na !== nb) return na - nb;
-      if (a.spindle === 'HS' && b.spindle === 'GS') return -1;
-      if (a.spindle === 'GS' && b.spindle === 'HS') return  1;
-      return 0;
+      return spRank(a.spindle) - spRank(b.spindle);
     });
 }
 
@@ -1791,13 +1815,13 @@ function parseFromMarker(text) {
     // Skip markers
     if (inner === 'NC-KOMMENTAR-START' || inner === 'NC-KOMMENTAR-ENDE') continue;
 
-    // Tool line: T + 2 digits + optional -HS/-GS + space + desc
-    const toolM = inner.match(/^T(\d{2})(?:-(HS|GS))?\s+(.*)|^T(\d{2})(?:-(HS|GS))?$/);
+    // Tool line: T + 2 digits + optional -HS/-GS/-NS + space + desc
+    const toolM = inner.match(/^T(\d{2})(?:-(HS|GS|NS))?\s+(.*)|^T(\d{2})(?:-(HS|GS|NS))?$/);
     if (toolM) {
       const num    = toolM[1] || toolM[4];
       const spin   = (toolM[2] || toolM[5]) || null;
       const desc   = (toolM[3] || '').trim();
-      const key    = spin ? `${num}-${spin}` : num;
+      const key    = spin === 'NS' ? `ns-${num}` : (spin ? `${num}-${spin}` : num);
       tools.push({ num, corr: num, spindle: spin, key, desc });
       continue;
     }
@@ -1836,12 +1860,11 @@ function parseFromMarker(text) {
       tools.push({ num: pt.num, corr: pt.corr, spindle: pt.spindle, key: pt.key, desc: '', _new: true });
     }
   }
+  const spRankParse = s => s === 'HS' ? 0 : s === 'GS' ? 1 : s === 'NS' ? 2 : 3;
   tools.sort((a, b) => {
     const na = parseInt(a.num), nb = parseInt(b.num);
     if (na !== nb) return na - nb;
-    if (a.spindle === 'HS' && b.spindle === 'GS') return -1;
-    if (a.spindle === 'GS' && b.spindle === 'HS') return  1;
-    return 0;
+    return spRankParse(a.spindle) - spRankParse(b.spindle);
   });
 
   state.meta         = info;
@@ -1918,7 +1941,8 @@ function buildCommentBlock() {
   }
 
   for (const t of state.tools) {
-    const label = t.spindle ? `T${t.num}-${t.spindle}` : `T${t.num}`;
+    const label = (t.spindle === 'HS' || t.spindle === 'GS' || t.spindle === 'NS')
+      ? `T${t.num}-${t.spindle}` : `T${t.num}`;
     lines.push(`(${label} ${s(t.desc) || '-'})`);
   }
 
@@ -2124,12 +2148,13 @@ function buildToolRows(tools) {
         ? `<span class="change-chip change-chip-removed" style="font-size:10px">entfernt</span>`
         : '';
     const k = t.key;
-    const tLabel = t.spindle ? `T${t.num}-${t.spindle}` : `T${t.num}`;
+    const isNS = t.spindle === 'NS';
+    const tLabel = (t.spindle === 'HS' || t.spindle === 'GS') ? `T${t.num}-${t.spindle}` : `T${t.num}`;
     const hasLibEntries = getLibraryEntries(state.activeMachineId, k).length > 0;
 
     const mainRow = `<tr data-tool-key="${k}" class="${rowClass}">
       <td><span class="t-chip">${tLabel}</span></td>
-      <td><span class="corr-chip">${t.corr}</span>${statusBadge}</td>
+      <td><span class="${isNS ? 'corr-chip-nonstd' : 'corr-chip'}">${t.corr}</span>${statusBadge}</td>
       <td><input type="text" class="tool-desc-input" value="${esc(t.desc)}" placeholder="Bezeichnung..." oninput="onToolDescInput(this,'${k}')"></td>
       <td style="text-align:center;white-space:nowrap">
         <button class="lib-save-btn" title="In Bibliothek speichern" onclick="saveToolToLibrary('${k}',this)">☁</button>
@@ -2197,9 +2222,24 @@ function renderToolTable() {
     return;
   }
 
+  const buildNsSection = (nsTools) => {
+    if (!nsTools.length) return '';
+    return `<div class="card" style="margin-top:10px">
+      <div class="nonstd-section-header">Keine Standardkorrektur</div>
+      <table class="tool-table">
+        <thead><tr>
+          <th style="width:70px">T-Nr.</th><th style="width:60px">Korr.</th>
+          <th>Bezeichnung</th><th style="width:96px;text-align:center">Bibliothek</th><th style="width:40px"></th>
+        </tr></thead>
+        <tbody id="toolTableBodyNS">${buildToolRows(nsTools)}</tbody>
+      </table>
+    </div>`;
+  };
+
   if (split) {
     const hs = state.tools.filter(t => t.spindle === 'HS');
     const gs = state.tools.filter(t => t.spindle === 'GS');
+    const ns = state.tools.filter(t => t.spindle === 'NS');
     container.innerHTML = `<div class="tool-two-col">
       <div class="card">
         <div class="tool-col-header">Hauptspindel · Korr. 01–${String(split).padStart(2,'0')}</div>
@@ -2221,9 +2261,11 @@ function renderToolTable() {
           <tbody id="toolTableBodyGS">${buildToolRows(gs)}</tbody>
         </table>
       </div>
-    </div>`;
+    </div>${buildNsSection(ns)}`;
   } else {
-    container.innerHTML = buildSingleTable('toolTableBody', state.tools);
+    const std = state.tools.filter(t => t.spindle !== 'NS');
+    const ns  = state.tools.filter(t => t.spindle === 'NS');
+    container.innerHTML = buildSingleTable('toolTableBody', std) + buildNsSection(ns);
   }
 }
 
@@ -2339,12 +2381,11 @@ function addToolRow() {
     state.tools.push({ num, corr: num, spindle: null, key: num, desc: '' });
   }
 
+  const spRankAdd = s => s === 'HS' ? 0 : s === 'GS' ? 1 : s === 'NS' ? 2 : 3;
   state.tools.sort((a, b) => {
     const na = parseInt(a.num), nb = parseInt(b.num);
     if (na !== nb) return na - nb;
-    if (a.spindle === 'HS' && b.spindle === 'GS') return -1;
-    if (a.spindle === 'GS' && b.spindle === 'HS') return  1;
-    return 0;
+    return spRankAdd(a.spindle) - spRankAdd(b.spindle);
   });
   renderToolTable();
   updateBadges();
@@ -2499,21 +2540,31 @@ function renderDisplayTab() {
     </div>
   ` : '';
 
+  // Rüstplan: show correction number instead of T-number
   const renderToolRows = tools => tools.map(t => `
     <div class="display-tool-row">
-      <div class="display-tool-num">T${t.num}</div>
+      <div class="display-tool-num" style="${t.spindle === 'NS' ? 'color:#e03131;font-weight:700' : ''}">${t.corr}</div>
       <div class="${t.desc ? 'display-tool-desc' : 'display-tool-empty'}">${esc(t.desc || '—')}</div>
     </div>
   `).join('');
 
+  const renderNsSection = nsTools => nsTools.length ? `
+    <div style="margin-top:12px">
+      <div style="font-weight:700;color:#e03131;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Keine Standardkorrektur</div>
+      ${renderToolRows(nsTools)}
+    </div>
+  ` : '';
+
   const split = machine?.spindelSplit;
   let toolsHtml = '';
   if (state.tools.length) {
+    const stdCount = state.tools.filter(t => t.spindle !== 'NS').length;
     if (split) {
       const hs = state.tools.filter(t => t.spindle === 'HS');
       const gs = state.tools.filter(t => t.spindle === 'GS');
+      const ns = state.tools.filter(t => t.spindle === 'NS');
       toolsHtml = `
-        <div class="display-tools-title">Werkzeuge (${state.tools.length})</div>
+        <div class="display-tools-title">Werkzeuge (${stdCount})</div>
         <div class="display-tools-two-col">
           <div>
             <div class="display-tool-col-header">Hauptspindel</div>
@@ -2524,16 +2575,15 @@ function renderDisplayTab() {
             ${gs.length ? renderToolRows(gs) : '<div class="display-tool-empty">—</div>'}
           </div>
         </div>
+        ${renderNsSection(ns)}
       `;
     } else {
+      const std = state.tools.filter(t => t.spindle !== 'NS');
+      const ns  = state.tools.filter(t => t.spindle === 'NS');
       toolsHtml = `
-        <div class="display-tools-title">Werkzeuge (${state.tools.length})</div>
-        ${state.tools.map(t => `
-          <div class="display-tool-row">
-            <div class="display-tool-num">T${t.num}</div>
-            <div class="${t.desc ? 'display-tool-desc' : 'display-tool-empty'}">${esc(t.desc || '—')}</div>
-          </div>
-        `).join('')}
+        <div class="display-tools-title">Werkzeuge (${stdCount})</div>
+        ${renderToolRows(std)}
+        ${renderNsSection(ns)}
       `;
     }
   }
