@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*.*.*'   # triggered by: git tag v1.0.1 && git push --tags
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
