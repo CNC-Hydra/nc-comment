@@ -1920,8 +1920,8 @@ function toNcSafe(str) {
   if (!str) return str;
   return str
     .replace(/Ä/g, 'AE').replace(/Ö/g, 'OE').replace(/Ü/g, 'UE')
-    .replace(/ä/g, 'AE').replace(/ö/g, 'OE').replace(/ü/g, 'UE')
-    .replace(/ß/g, 'SS');
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
 }
 
 // ═══════════════════════════════════════════════════════════
