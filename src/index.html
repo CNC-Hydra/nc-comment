@@ -2884,13 +2884,14 @@ function saveLibrarySlotEntry(slotKey, idx) {
 }
 
 function deleteLibrarySlotEntry(slotKey, idx) {
-  const entries = getLibraryEntries(state.activeMachineId, slotKey);
+  const lib = state.toolLibrary[state.activeMachineId];
+  if (!lib || !lib[slotKey]) return;
+  const entries = Array.isArray(lib[slotKey]) ? lib[slotKey] : [lib[slotKey]];
   entries.splice(idx, 1);
-  if (!state.toolLibrary[state.activeMachineId]) state.toolLibrary[state.activeMachineId] = {};
   if (entries.length === 0) {
-    delete state.toolLibrary[state.activeMachineId][slotKey];
+    delete lib[slotKey];
   } else {
-    state.toolLibrary[state.activeMachineId][slotKey] = entries;
+    lib[slotKey] = entries;
   }
   persist();
   renderLibrarySlotEntries(slotKey);
