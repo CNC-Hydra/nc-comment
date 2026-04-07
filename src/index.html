@@ -1110,6 +1110,13 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ── Print ── */
+  #printContainer { display: none; }
+  @media print {
+    body > * { display: none !important; }
+    #printContainer { display: block !important; }
+  }
 </style>
 </head>
 <body>
@@ -1282,6 +1289,9 @@
 
   </div><!-- /main-content -->
 </div><!-- /page -->
+
+<!-- PRINT CONTAINER (hidden, shown only via @media print) -->
+<div id="printContainer"></div>
 
 <!-- MACHINE SELECT MODAL -->
 <div class="modal-overlay" id="machineSelectModal">
@@ -2989,69 +2999,69 @@ function printRuestplan() {
       '</div>'
     : '';
 
-  const css = `
+  // Inject scoped print styles (only active during @media print)
+  let styleEl = document.getElementById('printStyles');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'printStyles';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `
     @page { size: A4 portrait; margin: 16mm 14mm 14mm 14mm; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
-    .print-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 3px solid #7a1a2b; margin-bottom: 14px; }
-    .print-logo { height: 38px; width: auto; }
-    .print-title-block { text-align: right; }
-    .print-title { font-size: 22px; font-weight: 700; letter-spacing: .08em; color: #7a1a2b; text-transform: uppercase; }
-    .print-date { font-size: 10px; color: #777; margin-top: 2px; }
-    .part-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
-    .part-name { font-size: 17px; font-weight: 700; color: #111; }
-    .part-meta { font-size: 10px; color: #555; font-family: 'Courier New', monospace; text-align: right; }
-    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px 8px; margin-bottom: 16px; padding: 10px 12px; background: #f8f2f2; border-radius: 4px; border-left: 3px solid #7a1a2b; }
-    .meta-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: .06em; color: #888; font-weight: 600; margin-bottom: 2px; }
-    .meta-value { font-size: 11px; font-weight: 600; color: #1a1a1a; }
-    .tools-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
-    .tool-block { break-inside: avoid; }
-    .tool-block-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #7a1a2b; padding: 5px 8px; background: #f8f2f2; border-top: 2px solid #7a1a2b; display: flex; align-items: center; gap: 6px; }
-    .corr-range { font-weight: 400; color: #999; font-size: 9px; }
-    .tool-table { width: 100%; border-collapse: collapse; }
-    .tool-table thead th { background: #7a1a2b; color: #fff; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 4px 8px; text-align: left; }
-    .tool-table tbody tr:nth-child(even) { background: #faf5f5; }
-    .tool-table tbody tr:nth-child(odd)  { background: #fff; }
-    .tool-table tbody tr:last-child td { border-bottom: 1px solid #e0d0d0; }
-    .corr-cell { font-family: 'Courier New', monospace; font-weight: 700; font-size: 11.5px; color: #7a1a2b; padding: 4px 8px; border-right: 1px solid #ead0d0; text-align: center; }
-    .desc-cell { padding: 4px 8px 4px 10px; font-size: 11px; }
-    .ns-block { margin-top: 14px; break-inside: avoid; }
-    .ns-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #b91c1c; padding: 5px 8px; background: #fff0f0; border-top: 2px solid #b91c1c; }
-    .ns-corr { color: #b91c1c !important; }
-    .print-footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 9px; color: #aaa; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    @media print {
+      #printContainer * { box-sizing: border-box; }
+      #printContainer { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      #printContainer .print-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 3px solid #7a1a2b; margin-bottom: 14px; }
+      #printContainer .print-logo { height: 38px; width: auto; }
+      #printContainer .print-title-block { text-align: right; }
+      #printContainer .print-title { font-size: 22px; font-weight: 700; letter-spacing: .08em; color: #7a1a2b; text-transform: uppercase; }
+      #printContainer .print-date { font-size: 10px; color: #777; margin-top: 2px; }
+      #printContainer .part-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+      #printContainer .part-name { font-size: 17px; font-weight: 700; color: #111; }
+      #printContainer .part-meta { font-size: 10px; color: #555; font-family: 'Courier New', monospace; text-align: right; }
+      #printContainer .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px 8px; margin-bottom: 16px; padding: 10px 12px; background: #f8f2f2 !important; border-radius: 4px; border-left: 3px solid #7a1a2b; }
+      #printContainer .meta-item { margin: 0; padding: 0; }
+      #printContainer .meta-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: .06em; color: #888; font-weight: 600; margin-bottom: 2px; }
+      #printContainer .meta-value { font-size: 11px; font-weight: 600; color: #1a1a1a; }
+      #printContainer .tools-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+      #printContainer .tool-block { break-inside: avoid; }
+      #printContainer .tool-block-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #7a1a2b; padding: 5px 8px; background: #f8f2f2 !important; border-top: 2px solid #7a1a2b; display: flex; align-items: center; gap: 6px; }
+      #printContainer .corr-range { font-weight: 400; color: #999; font-size: 9px; }
+      #printContainer .tool-table { width: 100%; border-collapse: collapse; }
+      #printContainer .tool-table thead th { background: #7a1a2b !important; color: #fff !important; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 4px 8px; text-align: left; }
+      #printContainer .tool-table tbody tr:nth-child(even) { background: #faf5f5 !important; }
+      #printContainer .tool-table tbody tr:nth-child(odd)  { background: #fff !important; }
+      #printContainer .tool-table tbody tr:last-child td { border-bottom: 1px solid #e0d0d0; }
+      #printContainer .corr-cell { font-family: 'Courier New', monospace; font-weight: 700; font-size: 11.5px; color: #7a1a2b; padding: 4px 8px; border-right: 1px solid #ead0d0; text-align: center; width: 52px; }
+      #printContainer .desc-cell { padding: 4px 8px 4px 10px; font-size: 11px; }
+      #printContainer .ns-block { margin-top: 14px; break-inside: avoid; }
+      #printContainer .ns-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #b91c1c; padding: 5px 8px; background: #fff0f0 !important; border-top: 2px solid #b91c1c; }
+      #printContainer .ns-corr { color: #b91c1c !important; }
+      #printContainer .print-footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 9px; color: #aaa; }
+    }
   `;
 
-  const doc = `<!DOCTYPE html>
-<html lang="de"><head><meta charset="UTF-8">
-<title>Rüstplan – ` + pEsc(partName) + `</title>
-<style>` + css + `</style></head>
-<body>
-<div class="print-header">
-  <img src="` + STROBEL_LOGO + `" class="print-logo" alt="Strobel">
-  <div class="print-title-block">
-    <div class="print-title">Rüstplan</div>
-    <div class="print-date">` + dateStr + ` &nbsp; ` + timeStr + ` Uhr</div>
-  </div>
-</div>
-<div class="part-row">
-  <div class="part-name">` + pEsc(partName) + `</div>
-  <div class="part-meta">` + pEsc(state.fileName || '') + ` &nbsp;·&nbsp; ` + pEsc(machine.name) + `</div>
-</div>
-` + metaHtml + `
-` + (toolsSection || '<p style="color:#888;font-size:12px;margin-top:8px">Keine Werkzeuge eingetragen.</p>') + `
-<div class="print-footer">
-  <span>NC-Kommentar Manager</span>
-  <span>` + pEsc(machine.name) + ` &nbsp;·&nbsp; gedruckt am ` + dateStr + ` ` + timeStr + ` Uhr</span>
-</div>
-</body></html>`;
+  // Populate print container
+  document.getElementById('printContainer').innerHTML =
+    '<div class="print-header">' +
+      '<img src="' + STROBEL_LOGO + '" class="print-logo" alt="Strobel">' +
+      '<div class="print-title-block">' +
+        '<div class="print-title">R\u00fcstplan</div>' +
+        '<div class="print-date">' + dateStr + ' &nbsp; ' + timeStr + ' Uhr</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="part-row">' +
+      '<div class="part-name">' + pEsc(partName) + '</div>' +
+      '<div class="part-meta">' + pEsc(state.fileName || '') + ' &nbsp;&middot;&nbsp; ' + pEsc(machine.name) + '</div>' +
+    '</div>' +
+    metaHtml +
+    (toolsSection || '<p style="color:#888;font-size:12px;margin-top:8px">Keine Werkzeuge eingetragen.</p>') +
+    '<div class="print-footer">' +
+      '<span>NC-Kommentar Manager</span>' +
+      '<span>' + pEsc(machine.name) + ' &nbsp;&middot;&nbsp; gedruckt am ' + dateStr + ' ' + timeStr + ' Uhr</span>' +
+    '</div>';
 
-  const win = window.open('', '_blank', 'width=870,height=760');
-  if (!win) { showToast('Popup wurde blockiert – bitte in Browser-Einstellungen erlauben', 'error'); return; }
-  win.document.write(doc);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 600);
+  window.print();
 }
 
 // ═══════════════════════════════════════════════════════════
