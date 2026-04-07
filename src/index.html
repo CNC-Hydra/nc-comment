@@ -1111,6 +1111,66 @@
   ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
+  /* ── Print preview modal ── */
+  .print-preview-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    z-index: 600; overflow-y: auto;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.18s;
+    backdrop-filter: blur(4px);
+    padding: 24px 0 40px;
+  }
+  .print-preview-overlay.open { opacity: 1; pointer-events: all; }
+  .print-preview-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+    background: var(--bg-content);
+    border-radius: var(--radius-md);
+    padding: 10px 16px;
+    box-shadow: var(--shadow-lg);
+    width: 780px; max-width: 96vw;
+  }
+  .print-preview-toolbar span { font-size: 13px; font-weight: 600; flex: 1; }
+  .print-paper {
+    width: 780px; max-width: 96vw;
+    background: #fff; color: #1a1a1a;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.35);
+    border-radius: 3px;
+    padding: 40px 42px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11px;
+  }
+  /* Paper content styles (screen version of print layout) */
+  .print-paper .pp-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 3px solid #7a1a2b; margin-bottom: 14px; }
+  .print-paper .pp-logo { height: 38px; width: auto; }
+  .print-paper .pp-title-block { text-align: right; }
+  .print-paper .pp-title { font-size: 22px; font-weight: 700; letter-spacing: .08em; color: #7a1a2b; text-transform: uppercase; }
+  .print-paper .pp-date { font-size: 10px; color: #777; margin-top: 2px; }
+  .print-paper .pp-part-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+  .print-paper .pp-part-name { font-size: 17px; font-weight: 700; color: #111; }
+  .print-paper .pp-part-meta { font-size: 10px; color: #555; font-family: 'Courier New', monospace; text-align: right; }
+  .print-paper .pp-meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px 8px; margin-bottom: 16px; padding: 10px 12px; background: #f8f2f2; border-radius: 4px; border-left: 3px solid #7a1a2b; }
+  .print-paper .pp-meta-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: .06em; color: #888; font-weight: 600; margin-bottom: 2px; }
+  .print-paper .pp-meta-value { font-size: 11px; font-weight: 600; color: #1a1a1a; }
+  .print-paper .pp-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  .print-paper .pp-tool-block { }
+  .print-paper .pp-tool-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #7a1a2b; padding: 5px 8px; background: #f8f2f2; border-top: 2px solid #7a1a2b; display: flex; align-items: center; gap: 6px; }
+  .print-paper .pp-corr-range { font-weight: 400; color: #999; font-size: 9px; }
+  .print-paper .pp-table { width: 100%; border-collapse: collapse; }
+  .print-paper .pp-table thead th { background: #7a1a2b; color: #fff; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 4px 8px; text-align: left; }
+  .print-paper .pp-table tbody tr:nth-child(even) { background: #faf5f5; }
+  .print-paper .pp-table tbody tr:nth-child(odd)  { background: #fff; }
+  .print-paper .pp-table tbody tr:last-child td { border-bottom: 1px solid #e0d0d0; }
+  .print-paper .pp-corr-cell { font-family: 'Courier New', monospace; font-weight: 700; font-size: 11.5px; color: #7a1a2b; padding: 4px 8px; border-right: 1px solid #ead0d0; text-align: center; width: 52px; }
+  .print-paper .pp-desc-cell { padding: 4px 8px 4px 10px; font-size: 11px; }
+  .print-paper .pp-ns-block { margin-top: 14px; }
+  .print-paper .pp-ns-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #b91c1c; padding: 5px 8px; background: #fff0f0; border-top: 2px solid #b91c1c; }
+  .print-paper .pp-ns-corr { color: #b91c1c !important; }
+  .print-paper .pp-footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 9px; color: #aaa; }
+
   /* ── Print ── */
   #printContainer { display: none; }
   @media print {
@@ -1292,6 +1352,16 @@
 
 <!-- PRINT CONTAINER (hidden, shown only via @media print) -->
 <div id="printContainer"></div>
+
+<!-- PRINT PREVIEW OVERLAY -->
+<div class="print-preview-overlay" id="printPreviewOverlay">
+  <div class="print-preview-toolbar">
+    <span>Druckvorschau</span>
+    <button class="btn btn-primary" style="font-size:12px" onclick="executePrint()">🖨 Drucken</button>
+    <button class="btn btn-secondary" style="font-size:12px" onclick="closePrintPreview()">✕ Schließen</button>
+  </div>
+  <div class="print-paper" id="printPaper"></div>
+</div>
 
 <!-- MACHINE SELECT MODAL -->
 <div class="modal-overlay" id="machineSelectModal">
@@ -2943,125 +3013,91 @@ function printRuestplan() {
   const ns  = state.tools.filter(t => t.spindle === 'NS');
   const std = state.tools.filter(t => t.spindle !== 'NS');
 
-  const toolTableHtml = (tools, caption, corrRange) => {
+  // Build content HTML — p = class prefix ('pp-' for preview, '' for print)
+  const buildToolTable = (p, tools, caption, corrRange) => {
     if (!tools.length) return '';
     const rows = tools.map(t =>
-      '<tr>' +
-      '<td class="corr-cell">' + pEsc(t.corr) + '</td>' +
-      '<td class="desc-cell">' + pEsc(t.desc || '—') + '</td>' +
-      '</tr>'
+      '<tr><td class="' + p + 'corr-cell">' + pEsc(t.corr) + '</td>' +
+      '<td class="' + p + 'desc-cell">' + pEsc(t.desc || '—') + '</td></tr>'
     ).join('');
-    return (
-      '<div class="tool-block">' +
-      '<div class="tool-block-title">' + pEsc(caption) +
-        '<span class="corr-range">' + pEsc(corrRange) + '</span></div>' +
-      '<table class="tool-table">' +
-      '<thead><tr><th style="width:52px">Korr.</th><th>Bezeichnung</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody>' +
-      '</table></div>'
-    );
+    return '<div class="' + p + 'tool-block">' +
+      '<div class="' + p + 'tool-title">' + pEsc(caption) +
+        '<span class="' + p + 'corr-range">' + pEsc(corrRange) + '</span></div>' +
+      '<table class="' + p + 'table"><thead><tr>' +
+        '<th style="width:52px">Korr.</th><th>Bezeichnung</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   };
 
-  let toolsSection = '';
-  if (state.tools.length) {
-    if (split) {
-      const hsRange = 'Korr. 01–' + String(split).padStart(2,'0');
-      const gsRange = 'Korr. ' + String(split+1).padStart(2,'0') + '–' + String(machine.maxTools).padStart(2,'0');
-      toolsSection =
-        '<div class="tools-two-col">' +
-        toolTableHtml(hs, 'Hauptspindel', hsRange) +
-        toolTableHtml(gs, 'Gegenspindel', gsRange) +
-        '</div>';
-    } else {
-      toolsSection = toolTableHtml(std, 'Werkzeuge', 'Korr. 01–' + String(machine.maxTools).padStart(2,'0'));
+  const buildContent = (p) => {
+    let tools = '';
+    if (state.tools.length) {
+      if (split) {
+        const hsRange = 'Korr. 01\u2013' + String(split).padStart(2,'0');
+        const gsRange = 'Korr. ' + String(split+1).padStart(2,'0') + '\u2013' + String(machine.maxTools).padStart(2,'0');
+        tools = '<div class="' + p + 'two-col">' +
+          buildToolTable(p, hs, 'Hauptspindel', hsRange) +
+          buildToolTable(p, gs, 'Gegenspindel', gsRange) +
+          '</div>';
+      } else {
+        tools = buildToolTable(p, std, 'Werkzeuge', 'Korr. 01\u2013' + String(machine.maxTools).padStart(2,'0'));
+      }
+      if (ns.length) {
+        const nsRows = ns.map(t =>
+          '<tr><td class="' + p + 'corr-cell ' + p + 'ns-corr">' + pEsc(t.corr) + '</td>' +
+          '<td class="' + p + 'desc-cell">' + pEsc(t.desc || '—') + '</td></tr>'
+        ).join('');
+        tools += '<div class="' + p + 'ns-block">' +
+          '<div class="' + p + 'ns-title">Keine Standardkorrektur</div>' +
+          '<table class="' + p + 'table"><thead><tr>' +
+            '<th style="width:52px">Korr.</th><th>Bezeichnung</th>' +
+          '</tr></thead><tbody>' + nsRows + '</tbody></table></div>';
+      }
     }
-    if (ns.length) {
-      const nsRows = ns.map(t =>
-        '<tr><td class="corr-cell ns-corr">' + pEsc(t.corr) + '</td>' +
-        '<td class="desc-cell">' + pEsc(t.desc || '—') + '</td></tr>'
-      ).join('');
-      toolsSection +=
-        '<div class="ns-block">' +
-        '<div class="ns-title">Keine Standardkorrektur</div>' +
-        '<table class="tool-table"><thead><tr><th style="width:52px">Korr.</th><th>Bezeichnung</th></tr></thead>' +
-        '<tbody>' + nsRows + '</tbody></table></div>';
-    }
-  }
-
-  const metaHtml = metaDefs.length
-    ? '<div class="meta-grid">' +
-      metaDefs.map(f =>
-        '<div class="meta-item">' +
-        '<div class="meta-label">' + pEsc(f.label) + '</div>' +
-        '<div class="meta-value">' + pEsc(f.value) + '</div>' +
-        '</div>'
-      ).join('') +
-      '</div>'
-    : '';
-
-  // Inject scoped print styles (only active during @media print)
-  let styleEl = document.getElementById('printStyles');
-  if (!styleEl) {
-    styleEl = document.createElement('style');
-    styleEl.id = 'printStyles';
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = `
-    @page { size: A4 portrait; margin: 16mm 14mm 14mm 14mm; }
-    @media print {
-      #printContainer * { box-sizing: border-box; }
-      #printContainer { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      #printContainer .print-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 3px solid #7a1a2b; margin-bottom: 14px; }
-      #printContainer .print-logo { height: 38px; width: auto; }
-      #printContainer .print-title-block { text-align: right; }
-      #printContainer .print-title { font-size: 22px; font-weight: 700; letter-spacing: .08em; color: #7a1a2b; text-transform: uppercase; }
-      #printContainer .print-date { font-size: 10px; color: #777; margin-top: 2px; }
-      #printContainer .part-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
-      #printContainer .part-name { font-size: 17px; font-weight: 700; color: #111; }
-      #printContainer .part-meta { font-size: 10px; color: #555; font-family: 'Courier New', monospace; text-align: right; }
-      #printContainer .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px 8px; margin-bottom: 16px; padding: 10px 12px; background: #f8f2f2 !important; border-radius: 4px; border-left: 3px solid #7a1a2b; }
-      #printContainer .meta-item { margin: 0; padding: 0; }
-      #printContainer .meta-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: .06em; color: #888; font-weight: 600; margin-bottom: 2px; }
-      #printContainer .meta-value { font-size: 11px; font-weight: 600; color: #1a1a1a; }
-      #printContainer .tools-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
-      #printContainer .tool-block { break-inside: avoid; }
-      #printContainer .tool-block-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #7a1a2b; padding: 5px 8px; background: #f8f2f2 !important; border-top: 2px solid #7a1a2b; display: flex; align-items: center; gap: 6px; }
-      #printContainer .corr-range { font-weight: 400; color: #999; font-size: 9px; }
-      #printContainer .tool-table { width: 100%; border-collapse: collapse; }
-      #printContainer .tool-table thead th { background: #7a1a2b !important; color: #fff !important; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 4px 8px; text-align: left; }
-      #printContainer .tool-table tbody tr:nth-child(even) { background: #faf5f5 !important; }
-      #printContainer .tool-table tbody tr:nth-child(odd)  { background: #fff !important; }
-      #printContainer .tool-table tbody tr:last-child td { border-bottom: 1px solid #e0d0d0; }
-      #printContainer .corr-cell { font-family: 'Courier New', monospace; font-weight: 700; font-size: 11.5px; color: #7a1a2b; padding: 4px 8px; border-right: 1px solid #ead0d0; text-align: center; width: 52px; }
-      #printContainer .desc-cell { padding: 4px 8px 4px 10px; font-size: 11px; }
-      #printContainer .ns-block { margin-top: 14px; break-inside: avoid; }
-      #printContainer .ns-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #b91c1c; padding: 5px 8px; background: #fff0f0 !important; border-top: 2px solid #b91c1c; }
-      #printContainer .ns-corr { color: #b91c1c !important; }
-      #printContainer .print-footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 9px; color: #aaa; }
-    }
-  `;
-
-  // Populate print container
-  document.getElementById('printContainer').innerHTML =
-    '<div class="print-header">' +
-      '<img src="' + STROBEL_LOGO + '" class="print-logo" alt="Strobel">' +
-      '<div class="print-title-block">' +
-        '<div class="print-title">R\u00fcstplan</div>' +
-        '<div class="print-date">' + dateStr + ' &nbsp; ' + timeStr + ' Uhr</div>' +
+    const meta = metaDefs.length
+      ? '<div class="' + p + 'meta-grid">' +
+        metaDefs.map(f =>
+          '<div><div class="' + p + 'meta-label">' + pEsc(f.label) + '</div>' +
+          '<div class="' + p + 'meta-value">' + pEsc(f.value) + '</div></div>'
+        ).join('') + '</div>'
+      : '';
+    return '<div class="' + p + 'header">' +
+        '<img src="' + STROBEL_LOGO + '" class="' + p + 'logo" alt="Strobel">' +
+        '<div class="' + p + 'title-block">' +
+          '<div class="' + p + 'title">R\u00fcstplan</div>' +
+          '<div class="' + p + 'date">' + dateStr + ' \u00a0 ' + timeStr + ' Uhr</div>' +
+        '</div>' +
       '</div>' +
-    '</div>' +
-    '<div class="part-row">' +
-      '<div class="part-name">' + pEsc(partName) + '</div>' +
-      '<div class="part-meta">' + pEsc(state.fileName || '') + ' &nbsp;&middot;&nbsp; ' + pEsc(machine.name) + '</div>' +
-    '</div>' +
-    metaHtml +
-    (toolsSection || '<p style="color:#888;font-size:12px;margin-top:8px">Keine Werkzeuge eingetragen.</p>') +
-    '<div class="print-footer">' +
-      '<span>NC-Kommentar Manager</span>' +
-      '<span>' + pEsc(machine.name) + ' &nbsp;&middot;&nbsp; gedruckt am ' + dateStr + ' ' + timeStr + ' Uhr</span>' +
-    '</div>';
+      '<div class="' + p + 'part-row">' +
+        '<div class="' + p + 'part-name">' + pEsc(partName) + '</div>' +
+        '<div class="' + p + 'part-meta">' + pEsc(state.fileName || '') + ' \u00b7 ' + pEsc(machine.name) + '</div>' +
+      '</div>' +
+      meta +
+      (tools || '<p style="color:#888;font-size:12px;margin-top:8px">Keine Werkzeuge eingetragen.</p>') +
+      '<div class="' + p + 'footer">' +
+        '<span>NC-Kommentar Manager</span>' +
+        '<span>' + pEsc(machine.name) + ' \u00b7 gedruckt am ' + dateStr + ' ' + timeStr + ' Uhr</span>' +
+      '</div>';
+  };
 
-  window.print();
+  // Populate #printContainer (used by window.print() via @media print)
+  let styleEl = document.getElementById('printStyles');
+  if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'printStyles'; document.head.appendChild(styleEl); }
+  styleEl.textContent = `@page{size:A4 portrait;margin:16mm 14mm 14mm 14mm}@media print{#printContainer *{box-sizing:border-box}#printContainer{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}#printContainer .header{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:3px solid #7a1a2b;margin-bottom:14px}#printContainer .logo{height:38px;width:auto}#printContainer .title-block{text-align:right}#printContainer .title{font-size:22px;font-weight:700;letter-spacing:.08em;color:#7a1a2b;text-transform:uppercase}#printContainer .date{font-size:10px;color:#777;margin-top:2px}#printContainer .part-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;gap:12px}#printContainer .part-name{font-size:17px;font-weight:700;color:#111}#printContainer .part-meta{font-size:10px;color:#555;font-family:'Courier New',monospace;text-align:right}#printContainer .meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px 8px;margin-bottom:16px;padding:10px 12px;background:#f8f2f2!important;border-radius:4px;border-left:3px solid #7a1a2b}#printContainer .meta-label{font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#888;font-weight:600;margin-bottom:2px}#printContainer .meta-value{font-size:11px;font-weight:600;color:#1a1a1a}#printContainer .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}#printContainer .tool-block{break-inside:avoid}#printContainer .tool-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7a1a2b;padding:5px 8px;background:#f8f2f2!important;border-top:2px solid #7a1a2b;display:flex;align-items:center;gap:6px}#printContainer .corr-range{font-weight:400;color:#999;font-size:9px}#printContainer .table{width:100%;border-collapse:collapse}#printContainer .table thead th{background:#7a1a2b!important;color:#fff!important;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px;text-align:left}#printContainer .table tbody tr:nth-child(even){background:#faf5f5!important}#printContainer .table tbody tr:nth-child(odd){background:#fff!important}#printContainer .table tbody tr:last-child td{border-bottom:1px solid #e0d0d0}#printContainer .corr-cell{font-family:'Courier New',monospace;font-weight:700;font-size:11.5px;color:#7a1a2b;padding:4px 8px;border-right:1px solid #ead0d0;text-align:center;width:52px}#printContainer .desc-cell{padding:4px 8px 4px 10px;font-size:11px}#printContainer .ns-block{margin-top:14px;break-inside:avoid}#printContainer .ns-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#b91c1c;padding:5px 8px;background:#fff0f0!important;border-top:2px solid #b91c1c}#printContainer .ns-corr{color:#b91c1c!important}#printContainer .footer{margin-top:18px;padding-top:8px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:9px;color:#aaa}}`;
+
+  document.getElementById('printContainer').innerHTML = buildContent('');
+
+  // Populate preview modal (uses pp-* CSS classes defined in <style>)
+  document.getElementById('printPaper').innerHTML = buildContent('pp-');
+  document.getElementById('printPreviewOverlay').classList.add('open');
+}
+
+function closePrintPreview() {
+  document.getElementById('printPreviewOverlay').classList.remove('open');
+}
+
+function executePrint() {
+  closePrintPreview();
+  setTimeout(() => window.print(), 100);
 }
 
 // ═══════════════════════════════════════════════════════════
