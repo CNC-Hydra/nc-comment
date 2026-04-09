@@ -3253,12 +3253,34 @@ async function writeLibraryUNC(cfg) {
 }
 
 // Android: Synology File Station API
+// Nutzt CapacitorHttp.request() direkt (nativer HTTP-Client, kein WebView-Patch nötig).
+// Auf Desktop: normales fetch().
+async function _synoGet(url) {
+  const ch = window.Capacitor?.Plugins?.CapacitorHttp;
+  if (ch) {
+    const r = await ch.request({ method: 'GET', url, responseType: 'json' });
+    if (r.status >= 400) throw new Error('HTTP ' + r.status);
+    return typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+  }
+  return (await fetch(url)).json();
+}
+
+async function _synoGetText(url) {
+  const ch = window.Capacitor?.Plugins?.CapacitorHttp;
+  if (ch) {
+    const r = await ch.request({ method: 'GET', url, responseType: 'text' });
+    if (r.status >= 400) throw new Error('HTTP ' + r.status);
+    return r.data;
+  }
+  const buf = await (await fetch(url)).arrayBuffer();
+  return new TextDecoder('ISO-8859-1').decode(buf);
+}
+
 async function synoLogin(cfg) {
   const url = `${cfg.synoUrl}/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=login` +
     `&account=${encodeURIComponent(cfg.synoUser)}&passwd=${encodeURIComponent(cfg.synoPass)}` +
     `&session=FileStation&format=sid`;
-  const resp = await fetch(url);
-  const data = await resp.json();
+  const data = await _synoGet(url);
   if (!data.success) throw new Error('Login fehlgeschlagen (Code ' + (data.error?.code || '?') + ')');
   return data.data.sid;
 }
@@ -3266,9 +3288,7 @@ async function readLibrarySyno(cfg) {
   const sid = await synoLogin(cfg);
   const url = `${cfg.synoUrl}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download` +
     `&path=${encodeURIComponent(cfg.synoFilePath)}&mode=open&_sid=${encodeURIComponent(sid)}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('Download fehlgeschlagen (' + resp.status + ')');
-  return await resp.text();
+  return _synoGetText(url);
 }
 async function writeLibrarySyno(cfg) {
   const sid    = await synoLogin(cfg);
@@ -3517,14 +3537,13 @@ async function _davListDir(path) {
   crumbEl.textContent = path;
 
   try {
-    // Synology File Station List API – nur GET, kein PROPFIND (Android-kompatibel)
+    // Synology File Station List API – nativer HTTP-Client via _synoGet()
     const url = `${_dav.cfg.synoUrl}/webapi/entry.cgi` +
       `?api=SYNO.FileStation.List&version=2&method=list` +
       `&folder_path=${encodeURIComponent(path)}` +
       `&additional=size,time&sort_by=name&sort_direction=ASC` +
       `&_sid=${encodeURIComponent(_dav.sid)}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
+    const data = await _synoGet(url);
     if (!data.success) throw new Error('Fehler Code ' + (data.error?.code || '?'));
 
     const items   = data.data.files || [];
@@ -3565,15 +3584,12 @@ async function _davOpenFile(path, name) {
   const listEl = document.getElementById('davFileList');
   listEl.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">Lade ${_davEsc(name)}…</div>`;
   try {
-    // Synology File Station Download API – GET-Request, kein WebDAV nötig
+    // Synology File Station Download API – nativer HTTP-Client via _synoGetText()
     const url = `${_dav.cfg.synoUrl}/webapi/entry.cgi` +
       `?api=SYNO.FileStation.Download&version=2&method=download` +
       `&path=${encodeURIComponent(path)}&mode=open` +
       `&_sid=${encodeURIComponent(_dav.sid)}`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const buf  = await resp.arrayBuffer();
-    const text = new TextDecoder('ISO-8859-1').decode(buf);
+    const text = await _synoGetText(url);
     closeDavBrowser();
     state.fileName = name;
     state.rawText  = text;
