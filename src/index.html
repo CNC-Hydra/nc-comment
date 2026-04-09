@@ -3207,7 +3207,18 @@ const SYNC_DEFAULTS = {
 function getSyncConfig() {
   try {
     const s = localStorage.getItem(LS_SYNC);
-    return s ? { ...SYNC_DEFAULTS, ...JSON.parse(s) } : { ...SYNC_DEFAULTS };
+    const cfg = s ? { ...SYNC_DEFAULTS, ...JSON.parse(s) } : { ...SYNC_DEFAULTS };
+    // Android: Netzwerk-Credentials immer aus den integrierten Defaults übernehmen,
+    // damit veraltete localStorage-Werte (z.B. Hostname statt IP) ignoriert werden.
+    if (window.Capacitor) {
+      cfg.synoUrl      = SYNC_DEFAULTS.synoUrl;
+      cfg.synoUser     = SYNC_DEFAULTS.synoUser;
+      cfg.synoPass     = SYNC_DEFAULTS.synoPass;
+      cfg.synoFilePath = SYNC_DEFAULTS.synoFilePath;
+      cfg.webdavUrl    = SYNC_DEFAULTS.webdavUrl;
+      cfg.webdavNcPath = SYNC_DEFAULTS.webdavNcPath;
+    }
+    return cfg;
   } catch { return { ...SYNC_DEFAULTS }; }
 }
 
