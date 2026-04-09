@@ -1198,6 +1198,21 @@
     body > * { display: none !important; }
     #printContainer { display: block !important; }
   }
+
+  /* ── Android viewer mode ──────────────────────────────── */
+  .android-viewer #btnSave                   { display: none !important; }
+  .android-viewer #btnNewFile                { display: none !important; }
+  .android-viewer #btnReAnalyze              { display: none !important; }
+  .android-viewer .tab[data-tab="werkzeuge"] { display: none !important; }
+  .android-viewer .tab[data-tab="info"]      { display: none !important; }
+  .android-viewer .tab[data-tab="nc"]        { display: none !important; }
+  /* Sync-Konfiguration im Einstellungs-Dialog ausblenden */
+  .android-viewer #syncEnabledRow            { display: none !important; }
+  .android-viewer #syncConfigBody            { display: none !important; }
+  .android-viewer #androidSyncNote           { display: block !important; }
+  /* Druckvorschau auf Tablet: volle Breite, kompakteres Padding */
+  .android-viewer .print-preview-toolbar    { width: 96vw; }
+  .android-viewer .print-paper              { width: 96vw; padding: 24px 18px; }
 </style>
 </head>
 <body>
@@ -1447,9 +1462,12 @@
       Bibliothek automatisch mit der Synology synchronisieren.
     </div>
 
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <div id="syncEnabledRow" style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <input type="checkbox" id="syncEnabled" onchange="onSyncEnabledChange(this)" style="width:16px;height:16px;cursor:pointer">
       <label for="syncEnabled" style="font-size:13px;cursor:pointer">Sync aktiviert</label>
+    </div>
+    <div id="androidSyncNote" style="display:none;font-size:12px;color:var(--success,#1a7a4a);padding:6px 0 10px">
+      ✓ Sync aktiv – Anmeldedaten sind in der App integriert
     </div>
 
     <div id="syncConfigBody">
@@ -2219,6 +2237,11 @@ function renderAll() {
   renderDisplayTab();
 
   switchTab('anzeige');
+
+  // Android: Viewer-Modus – Druckvorschau direkt öffnen
+  if (window.Capacitor) {
+    setTimeout(() => printRuestplan(), 80);
+  }
 }
 
 function updateBadges() {
@@ -3145,6 +3168,8 @@ function printRuestplan() {
 
 function closePrintPreview() {
   document.getElementById('printPreviewOverlay').classList.remove('open');
+  // Android: Viewer-Modus – zurück zur Dateiauswahl
+  if (window.Capacitor) resetFile();
 }
 
 function executePrint() {
@@ -3265,10 +3290,11 @@ async function writeLibrarySyno(cfg) {
 
 async function syncLibrary(showFeedback = true) {
   const cfg = getSyncConfig();
-  if (!cfg.enabled) return;
   const isElectron  = !!window.electronAPI?.readLibrary;
   const isCapacitor = !!window.Capacitor;
   if (!isElectron && !isCapacitor) return;
+  // Desktop: Enabled-Flag respektieren. Android: immer synchronisieren (Anmeldedaten integriert)
+  if (!isCapacitor && !cfg.enabled) return;
 
   try {
     // 1. Read remote
@@ -3580,6 +3606,21 @@ async function _davOpenFile(path, name) {
 loadPersistedState();
 updateMachineDisplay();
 updateDavBtnVisibility();
+
+// ── Android: Viewer-Modus aktivieren ─────────────────────
+if (window.Capacitor) {
+  document.body.classList.add('android-viewer');
+
+  // Druckvorschau-Toolbar für Viewer-Modus anpassen
+  const overlay = document.getElementById('printPreviewOverlay');
+  if (overlay) {
+    const title = overlay.querySelector('.print-preview-toolbar span');
+    if (title) title.textContent = 'Rüstplan';
+    const closeBtn = overlay.querySelector('.btn-secondary');
+    if (closeBtn) closeBtn.textContent = '📂 Neue Datei';
+  }
+}
+
 // Auto-sync on startup (delayed so UI is ready first)
 setTimeout(() => syncLibrary(false), 2000);
 
