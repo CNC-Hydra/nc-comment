@@ -3421,6 +3421,17 @@ if (window.Capacitor) {
   const GITHUB_RELEASES_API = 'https://api.github.com/repos/CNC-Hydra/nc-comment/releases/latest';
   const APK_FILENAME = 'NC-Kommentar-Manager.apk';
 
+  // Set version tag from installed app info (replaces electron getVersion())
+  const CapApp = window.Capacitor?.Plugins?.App;
+  if (CapApp) {
+    CapApp.getInfo().then(info => {
+      const tag   = document.getElementById('appVersionTag');
+      const brand = document.querySelector('.topbar-brand');
+      if (tag)   tag.textContent      = 'v' + info.version;
+      if (brand) brand.dataset.version = info.version;
+    }).catch(() => {});
+  }
+
   async function checkAndroidUpdate() {
     try {
       const resp = await fetch(GITHUB_RELEASES_API, {
@@ -3451,45 +3462,55 @@ if (window.Capacitor) {
   }
 
   async function downloadAndInstallApk(url) {
-    const btn = document.getElementById('androidUpdateBtn');
+    const btn  = document.getElementById('androidUpdateBtn');
     const prog = document.getElementById('androidUpdateProgress');
-    if (btn) btn.disabled = true;
+    if (btn)  btn.disabled = true;
     if (prog) prog.style.display = 'inline';
+
+    // Access Capacitor plugins via global bridge (works in WebView without bundler)
+    const Filesystem = window.Capacitor?.Plugins?.Filesystem;
+    const FileOpener  = window.Capacitor?.Plugins?.FileOpener;
+
     try {
+      if (!Filesystem || !FileOpener) {
+        // Fallback: open download URL in system browser
+        showToast('Öffne Download im Browser…', 'info');
+        window.open(url, '_system');
+        return;
+      }
+
       showToast('APK wird heruntergeladen…', 'info');
-      // Fetch APK as base64
-      const resp = await fetch(url);
+
+      // Fetch APK and convert to base64
+      const resp   = await fetch(url);
       const buffer = await resp.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
+      const bytes  = new Uint8Array(buffer);
+      // Chunk-based btoa to avoid call-stack overflow on large files
       let binary = '';
-      bytes.forEach(b => binary += String.fromCharCode(b));
+      const CHUNK = 8192;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+      }
       const base64 = btoa(binary);
 
-      const { Filesystem, Directory } = await import('./node_modules/@capacitor/filesystem/dist/esm/index.js').catch(() => null) || {};
-      if (!Filesystem) {
-        showToast('Filesystem-Plugin nicht verfügbar', 'error');
-        return;
-      }
+      // Write APK to cache directory
       const result = await Filesystem.writeFile({
-        path: APK_FILENAME,
-        data: base64,
-        directory: Directory.Cache
+        path:      APK_FILENAME,
+        data:      base64,
+        directory: 'CACHE'   // string literal — no enum import needed
       });
 
-      const { FileOpener } = await import('./node_modules/@capacitor-community/file-opener/dist/esm/index.js').catch(() => null) || {};
-      if (!FileOpener) {
-        showToast('FileOpener-Plugin nicht verfügbar', 'error');
-        return;
-      }
+      // Open APK installer
       await FileOpener.open({
-        filePath: result.uri,
+        filePath:    result.uri,
         contentType: 'application/vnd.android.package-archive'
       });
     } catch (e) {
       console.error('APK download/install failed', e);
-      showToast('Installation fehlgeschlagen: ' + e.message, 'error');
+      showToast('Fehler: ' + e.message + ' — versuche Browser-Download', 'error');
+      window.open(url, '_system');
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn)  btn.disabled = false;
       if (prog) prog.style.display = 'none';
     }
   }
