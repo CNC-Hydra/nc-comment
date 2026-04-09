@@ -1208,6 +1208,11 @@
   .android-viewer .tab[data-tab="werkzeuge"] { display: none !important; }
   .android-viewer .tab[data-tab="info"]      { display: none !important; }
   .android-viewer .tab[data-tab="nc"]        { display: none !important; }
+  /* Einstellungs-Button ausblenden */
+  .android-viewer .btn-icon                  { display: none !important; }
+  /* Drop-Zone ausblenden, Android-Startseite zeigen */
+  .android-viewer #dropZone                  { display: none !important; }
+  .android-viewer #androidStartScreen        { display: flex !important; }
   /* Sync-Konfiguration im Einstellungs-Dialog ausblenden */
   .android-viewer #syncEnabledRow            { display: none !important; }
   .android-viewer #syncConfigBody            { display: none !important; }
@@ -1239,6 +1244,8 @@
 
   <!-- DROP SCREEN -->
   <div class="drop-screen" id="dropScreen">
+
+    <!-- Desktop: Drag-&-Drop-Zone -->
     <div class="drop-zone" id="dropZone"
          ondragover="handleDragOver(event)"
          ondragleave="handleDragLeave(event)"
@@ -1256,6 +1263,25 @@
         </button>
       </div>
     </div>
+
+    <!-- Android: vereinfachte Startseite -->
+    <div id="androidStartScreen" style="
+        display:none; flex-direction:column; align-items:center;
+        justify-content:center; gap:32px; padding:40px; text-align:center;
+        height:100%; width:100%;">
+      <div style="font-size:22px;font-weight:700;letter-spacing:.02em;color:var(--text-primary)">
+        NC-Programm einlesen
+      </div>
+      <button onclick="openDavBrowser()" style="
+          font-size:20px; font-weight:600; padding:22px 48px;
+          background:var(--accent,#2563eb); color:#fff;
+          border:none; border-radius:14px; cursor:pointer;
+          box-shadow:0 4px 18px rgba(37,99,235,.35);
+          touch-action:manipulation; letter-spacing:.01em;">
+        🌐 Von Netzwerk laden
+      </button>
+    </div>
+
   </div>
 
   <!-- MAIN CONTENT (after file loaded) -->
