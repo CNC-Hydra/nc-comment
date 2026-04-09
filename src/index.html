@@ -1253,7 +1253,7 @@
          onclick="document.getElementById('fileInput').click()">
       <div class="drop-icon">📂</div>
       <div class="drop-title">NC-Programm hier ablegen</div>
-      <div class="drop-sub">.dre &nbsp;·&nbsp; .nc &nbsp;·&nbsp; .nd &nbsp;·&nbsp; .din &nbsp;·&nbsp; .mpf</div>
+      <div class="drop-sub">.dre &nbsp;·&nbsp; .nc &nbsp;·&nbsp; .nd &nbsp;·&nbsp; .din &nbsp;·&nbsp; .mpf &nbsp;·&nbsp; .P-1</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
         <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
           Datei auswählen
@@ -1564,7 +1564,7 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<input type="file" id="fileInput" accept=".dre,.nc,.nd,.din,.mpf,.txt" style="display:none" onchange="handleFileInput(event)">
+<input type="file" id="fileInput" accept=".dre,.nc,.nd,.din,.mpf,.txt,.p-1" style="display:none" onchange="handleFileInput(event)">
 
 <script>
 'use strict';
@@ -3450,9 +3450,9 @@ function renderSyncSettings() {
 }
 
 function updateDavBtnVisibility(cfg) {
-  cfg = cfg || getSyncConfig();
+  // Nur auf Android anzeigen – Desktop nutzt Datei-Öffnen-Dialog
   const btn = document.getElementById('btnDavLoad');
-  if (btn) btn.style.display = (cfg.synoUrl && cfg.synoUser) ? '' : 'none';
+  if (btn) btn.style.display = 'none';
 }
 
 function saveSyncSettingsFromForm() {
@@ -3530,7 +3530,7 @@ document.addEventListener('input', e => {
 // ═══════════════════════════════════════════════════════════
 // WEBDAV FILE BROWSER
 // ═══════════════════════════════════════════════════════════
-const DAV_NC_EXTS = new Set(['.dre', '.nc', '.nd', '.din', '.mpf', '.txt']);
+const DAV_NC_EXTS = new Set(['.dre', '.nc', '.nd', '.din', '.mpf', '.txt', '.p-1']);
 
 function _davIsNc(name) {
   const dot = name.lastIndexOf('.');
@@ -3741,20 +3741,22 @@ if (window.Capacitor) {
     }
   }
 
+  let _apkDownloadUrl = '';
+
   function showAndroidUpdateBanner(version, downloadUrl) {
+    _apkDownloadUrl = downloadUrl;
     const banner = document.getElementById('androidUpdateBanner');
     if (banner) {
       document.getElementById('androidUpdateVersion').textContent = version;
-      banner.dataset.url = downloadUrl;
       banner.style.display = 'flex';
     }
   }
 
-  function downloadAndInstallApk(url) {
-    // APK-Download im System-Browser öffnen (Silk auf Fire HD lädt herunter
-    // und bietet anschließend die Installation an).
-    showToast('Download wird im Browser geöffnet…', 'info');
-    window.open(url, '_system');
+  function downloadAndInstallApk() {
+    if (!_apkDownloadUrl) { showToast('Update-URL nicht verfügbar', 'error'); return; }
+    showToast('Silk-Browser wird geöffnet…', 'info');
+    // Kurze Verzögerung damit der Toast sichtbar ist, dann URL öffnen
+    setTimeout(() => window.open(_apkDownloadUrl, '_system'), 400);
   }
 
   // Check on startup (with slight delay to let app load)
@@ -3795,7 +3797,7 @@ if (window.Capacitor) {
   <div style="flex:1">
     🔄 Version <strong id="androidUpdateVersion"></strong> verfügbar — APK herunterladen und installieren
   </div>
-  <button id="androidUpdateBtn" onclick="downloadAndInstallApk(this.closest('[data-url]').dataset.url)" style="
+  <button id="androidUpdateBtn" onclick="downloadAndInstallApk()" style="
     background:#fff; color:#1a7a4a; border:none; border-radius:6px;
     padding:5px 14px; font-size:13px; font-weight:600; cursor:pointer">
     Jetzt aktualisieren <span id="androidUpdateProgress" style="display:none">⏳</span>
