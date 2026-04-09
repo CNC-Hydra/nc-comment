@@ -3393,7 +3393,7 @@ function renderSyncSettings() {
 function updateDavBtnVisibility(cfg) {
   cfg = cfg || getSyncConfig();
   const btn = document.getElementById('btnDavLoad');
-  if (btn) btn.style.display = (cfg.webdavUrl && cfg.synoUser) ? '' : 'none';
+  if (btn) btn.style.display = (cfg.synoUrl && cfg.synoUser) ? '' : 'none';
 }
 
 function saveSyncSettingsFromForm() {
@@ -3482,21 +3482,31 @@ function _davEsc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-let _dav = { cfg: null, currentPath: '' };
+let _dav = { cfg: null, currentPath: '', sid: null };
 
-function openDavBrowser() {
+async function openDavBrowser() {
   _dav.cfg = getSyncConfig();
-  if (!_dav.cfg.webdavUrl) {
-    showToast('WebDAV nicht konfiguriert – bitte Einstellungen prüfen', 'error');
+  if (!_dav.cfg.synoUrl || !_dav.cfg.synoUser) {
+    showToast('Netzwerk nicht konfiguriert – bitte Einstellungen prüfen', 'error');
     return;
   }
   _dav.currentPath = _dav.cfg.webdavNcPath || '/';
+  _dav.sid = null;
   document.getElementById('davBrowserOverlay').classList.add('open');
-  _davListDir(_dav.currentPath);
+  document.getElementById('davFileList').innerHTML =
+    '<div style="text-align:center;padding:40px;color:var(--text-muted)">Verbinde…</div>';
+  try {
+    _dav.sid = await synoLogin(_dav.cfg);
+    _davListDir(_dav.currentPath);
+  } catch (e) {
+    document.getElementById('davFileList').innerHTML =
+      `<div style="color:#b91c1c;padding:20px;font-size:13px">❌ ${_davEsc(e.message)}</div>`;
+  }
 }
 
 function closeDavBrowser() {
   document.getElementById('davBrowserOverlay').classList.remove('open');
+  _dav.sid = null;
 }
 
 async function _davListDir(path) {
@@ -3507,49 +3517,23 @@ async function _davListDir(path) {
   crumbEl.textContent = path;
 
   try {
-    const base    = _dav.cfg.webdavUrl.replace(/\/$/, '');
-    const url     = base + path.replace(/\/$/, '') + '/';
-    const authB64 = btoa(_dav.cfg.synoUser + ':' + _dav.cfg.synoPass);
+    // Synology File Station List API – nur GET, kein PROPFIND (Android-kompatibel)
+    const url = `${_dav.cfg.synoUrl}/webapi/entry.cgi` +
+      `?api=SYNO.FileStation.List&version=2&method=list` +
+      `&folder_path=${encodeURIComponent(path)}` +
+      `&additional=size,time&sort_by=name&sort_direction=ASC` +
+      `&_sid=${encodeURIComponent(_dav.sid)}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (!data.success) throw new Error('Fehler Code ' + (data.error?.code || '?'));
 
-    const resp = await fetch(url, {
-      method:  'PROPFIND',
-      headers: {
-        'Authorization': 'Basic ' + authB64,
-        'Depth':         '1',
-        'Content-Type':  'application/xml; charset=utf-8'
-      },
-      body: '<?xml version="1.0" encoding="utf-8"?>' +
-            '<propfind xmlns="DAV:"><prop><resourcetype/><displayname/></prop></propfind>'
-    });
-
-    if (resp.status === 401) throw new Error('Zugriff verweigert – Benutzername/Passwort prüfen');
-    if (!resp.ok && resp.status !== 207) throw new Error('HTTP ' + resp.status);
-
-    const xmlText = await resp.text();
-    const xml     = new DOMParser().parseFromString(xmlText, 'application/xml');
-    const NS      = 'DAV:';
-
-    // Parse all <response> elements; skip the first one (it's the directory itself)
-    const responses = [...xml.getElementsByTagNameNS(NS, 'response')].slice(1);
-
-    const dirs  = [];
-    const files = [];
-
-    for (const r of responses) {
-      const href = r.getElementsByTagNameNS(NS, 'href')[0]?.textContent || '';
-      const name = decodeURIComponent(href.replace(/\/$/, '').split('/').pop());
-      if (!name) continue;
-      const isDir = !!r.getElementsByTagNameNS(NS, 'collection')[0];
-      if (isDir) {
-        dirs.push({ href, name });
-      } else if (_davIsNc(name)) {
-        files.push({ href, name });
-      }
-    }
+    const items   = data.data.files || [];
+    const folders = items.filter(i => i.isdir);
+    const files   = items.filter(i => !i.isdir && _davIsNc(i.name));
 
     let html = '';
 
-    // Back button
+    // Zurück-Button
     const root = (_dav.cfg.webdavNcPath || '/').replace(/\/$/, '');
     if (path.replace(/\/$/, '') !== root && path !== '/') {
       const parent = path.replace(/\/$/, '').split('/').slice(0, -1).join('/') || '/';
@@ -3557,16 +3541,13 @@ async function _davListDir(path) {
         <span class="dav-icon">⬆️</span><span class="dav-name">.. zurück</span></div>`;
     }
 
-    for (const d of dirs.sort((a,b) => a.name.localeCompare(b.name))) {
-      // Derive clean path from current path + name
-      const childPath = path.replace(/\/$/, '') + '/' + d.name;
-      html += `<div class="dav-item dav-dir" onclick="_davListDir(${JSON.stringify(childPath)})">
+    for (const d of folders) {
+      html += `<div class="dav-item dav-dir" onclick="_davListDir(${JSON.stringify(d.path)})">
         <span class="dav-icon">📁</span><span class="dav-name">${_davEsc(d.name)}</span></div>`;
     }
 
-    for (const f of files.sort((a,b) => a.name.localeCompare(b.name))) {
-      const filePath = path.replace(/\/$/, '') + '/' + f.name;
-      html += `<div class="dav-item dav-file" onclick="_davOpenFile(${JSON.stringify(filePath)}, ${JSON.stringify(f.name)})">
+    for (const f of files) {
+      html += `<div class="dav-item dav-file" onclick="_davOpenFile(${JSON.stringify(f.path)}, ${JSON.stringify(f.name)})">
         <span class="dav-icon">📄</span><span class="dav-name">${_davEsc(f.name)}</span></div>`;
     }
 
@@ -3584,10 +3565,12 @@ async function _davOpenFile(path, name) {
   const listEl = document.getElementById('davFileList');
   listEl.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">Lade ${_davEsc(name)}…</div>`;
   try {
-    const base    = _dav.cfg.webdavUrl.replace(/\/$/, '');
-    const url     = base + path;
-    const authB64 = btoa(_dav.cfg.synoUser + ':' + _dav.cfg.synoPass);
-    const resp    = await fetch(url, { headers: { 'Authorization': 'Basic ' + authB64 } });
+    // Synology File Station Download API – GET-Request, kein WebDAV nötig
+    const url = `${_dav.cfg.synoUrl}/webapi/entry.cgi` +
+      `?api=SYNO.FileStation.Download&version=2&method=download` +
+      `&path=${encodeURIComponent(path)}&mode=open` +
+      `&_sid=${encodeURIComponent(_dav.sid)}`;
+    const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const buf  = await resp.arrayBuffer();
     const text = new TextDecoder('ISO-8859-1').decode(buf);
