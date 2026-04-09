@@ -58,6 +58,18 @@ jobs:
       - name: Set version from tag
         run: npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
 
+      - name: Update Android versionName + versionCode in build.gradle
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"                          # strip leading 'v'
+          # versionCode = major*10000 + minor*100 + patch  (e.g. 1.0.21 → 10021)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          PATCH=${PATCH:-0}
+          CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          sed -i "s/versionCode [0-9]*/versionCode $CODE/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android/app/build.gradle
+          echo "Set versionName=$VERSION versionCode=$CODE"
+
       - name: Sync Capacitor
         run: npx cap sync android
 

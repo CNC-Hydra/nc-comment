@@ -3461,58 +3461,11 @@ if (window.Capacitor) {
     }
   }
 
-  async function downloadAndInstallApk(url) {
-    const btn  = document.getElementById('androidUpdateBtn');
-    const prog = document.getElementById('androidUpdateProgress');
-    if (btn)  btn.disabled = true;
-    if (prog) prog.style.display = 'inline';
-
-    // Access Capacitor plugins via global bridge (works in WebView without bundler)
-    const Filesystem = window.Capacitor?.Plugins?.Filesystem;
-    const FileOpener  = window.Capacitor?.Plugins?.FileOpener;
-
-    try {
-      if (!Filesystem || !FileOpener) {
-        // Fallback: open download URL in system browser
-        showToast('Öffne Download im Browser…', 'info');
-        window.open(url, '_system');
-        return;
-      }
-
-      showToast('APK wird heruntergeladen…', 'info');
-
-      // Fetch APK and convert to base64
-      const resp   = await fetch(url);
-      const buffer = await resp.arrayBuffer();
-      const bytes  = new Uint8Array(buffer);
-      // Chunk-based btoa to avoid call-stack overflow on large files
-      let binary = '';
-      const CHUNK = 8192;
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-      }
-      const base64 = btoa(binary);
-
-      // Write APK to cache directory
-      const result = await Filesystem.writeFile({
-        path:      APK_FILENAME,
-        data:      base64,
-        directory: 'CACHE'   // string literal — no enum import needed
-      });
-
-      // Open APK installer
-      await FileOpener.open({
-        filePath:    result.uri,
-        contentType: 'application/vnd.android.package-archive'
-      });
-    } catch (e) {
-      console.error('APK download/install failed', e);
-      showToast('Fehler: ' + e.message + ' — versuche Browser-Download', 'error');
-      window.open(url, '_system');
-    } finally {
-      if (btn)  btn.disabled = false;
-      if (prog) prog.style.display = 'none';
-    }
+  function downloadAndInstallApk(url) {
+    // Öffnet die APK-Download-URL im System-Browser (Silk auf Fire HD).
+    // Der Browser lädt die APK herunter und Android bietet die Installation an.
+    showToast('APK wird im Browser geöffnet…', 'info');
+    window.open(url, '_system');
   }
 
   // Check on startup (with slight delay to let app load)
