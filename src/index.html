@@ -3569,17 +3569,17 @@ async function _davListDir(path) {
     const root = (_dav.cfg.webdavNcPath || '/').replace(/\/$/, '');
     if (path.replace(/\/$/, '') !== root && path !== '/') {
       const parent = path.replace(/\/$/, '').split('/').slice(0, -1).join('/') || '/';
-      html += `<div class="dav-item dav-back" onclick="_davListDir(${JSON.stringify(parent)})">
+      html += `<div class="dav-item dav-back" data-dav-action="dir" data-dav-path="${_davEsc(parent)}">
         <span class="dav-icon">⬆️</span><span class="dav-name">.. zurück</span></div>`;
     }
 
     for (const d of folders) {
-      html += `<div class="dav-item dav-dir" onclick="_davListDir(${JSON.stringify(d.path)})">
+      html += `<div class="dav-item dav-dir" data-dav-action="dir" data-dav-path="${_davEsc(d.path)}">
         <span class="dav-icon">📁</span><span class="dav-name">${_davEsc(d.name)}</span></div>`;
     }
 
     for (const f of files) {
-      html += `<div class="dav-item dav-file" onclick="_davOpenFile(${JSON.stringify(f.path)}, ${JSON.stringify(f.name)})">
+      html += `<div class="dav-item dav-file" data-dav-action="file" data-dav-path="${_davEsc(f.path)}" data-dav-name="${_davEsc(f.name)}">
         <span class="dav-icon">📄</span><span class="dav-name">${_davEsc(f.name)}</span></div>`;
     }
 
@@ -3618,6 +3618,18 @@ async function _davOpenFile(path, name) {
 loadPersistedState();
 updateMachineDisplay();
 updateDavBtnVisibility();
+
+// Event Delegation für Datei-Browser: pointerup statt onclick auf items
+// → funktioniert zuverlässig auf Android-Touch ohne 300ms-Delay
+document.getElementById('davFileList').addEventListener('pointerup', function(e) {
+  const item = e.target.closest('[data-dav-action]');
+  if (!item) return;
+  const action = item.dataset.davAction;
+  const path   = item.dataset.davPath;
+  const name   = item.dataset.davName;
+  if (action === 'dir')  _davListDir(path);
+  if (action === 'file') _davOpenFile(path, name);
+});
 
 // ── Android: Viewer-Modus aktivieren ─────────────────────
 if (window.Capacitor) {
