@@ -3752,12 +3752,23 @@ if (window.Capacitor) {
     }
   }
 
-  function downloadAndInstallApk() {
+  // Global registrieren – onclick-Attribute im HTML können Block-scoped
+  // Funktionen in strict mode nicht erreichen
+  window.downloadAndInstallApk = function() {
     if (!_apkDownloadUrl) { showToast('Update-URL nicht verfügbar', 'error'); return; }
-    showToast('Silk-Browser wird geöffnet…', 'info');
-    // Kurze Verzögerung damit der Toast sichtbar ist, dann URL öffnen
-    setTimeout(() => window.open(_apkDownloadUrl, '_system'), 400);
-  }
+    showToast('Download wird gestartet…', 'info');
+    // Anchor-Click ist auf Android WebView zuverlässiger als window.open,
+    // da CapacitorHttp.enabled das window.open patcht und _system ignorieren kann
+    setTimeout(function() {
+      const a = document.createElement('a');
+      a.href = _apkDownloadUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 200);
+    }, 300);
+  };
 
   // Check on startup (with slight delay to let app load)
   setTimeout(checkAndroidUpdate, 3000);
