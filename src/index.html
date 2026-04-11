@@ -1217,9 +1217,25 @@
   .android-viewer #syncEnabledRow            { display: none !important; }
   .android-viewer #syncConfigBody            { display: none !important; }
   .android-viewer #androidSyncNote           { display: block !important; }
-  /* Druckvorschau auf Tablet: volle Breite, kompakteres Padding */
-  .android-viewer .print-preview-toolbar    { width: 96vw; }
-  .android-viewer .print-paper              { width: 96vw; padding: 24px 18px; }
+  /* Druckvorschau auf Tablet: volle Breite + größere Schrift für Lesbarkeit */
+  .android-viewer .print-preview-toolbar       { width: 96vw; }
+  .android-viewer .print-paper                 { width: 96vw; padding: 20px 16px; }
+  .android-viewer .print-paper .pp-logo        { height: 50px; }
+  .android-viewer .print-paper .pp-title       { font-size: 28px; }
+  .android-viewer .print-paper .pp-date        { font-size: 14px; margin-top: 4px; }
+  .android-viewer .print-paper .pp-part-name   { font-size: 22px; }
+  .android-viewer .print-paper .pp-part-meta   { font-size: 13px; }
+  .android-viewer .print-paper .pp-meta-grid   { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 8px 12px; padding: 12px 14px; margin-bottom: 18px; }
+  .android-viewer .print-paper .pp-meta-label  { font-size: 12px; }
+  .android-viewer .print-paper .pp-meta-value  { font-size: 15px; }
+  .android-viewer .print-paper .pp-tool-title  { font-size: 14px; padding: 8px 10px; }
+  .android-viewer .print-paper .pp-corr-range  { font-size: 12px; }
+  .android-viewer .print-paper .pp-table thead th { font-size: 13px; padding: 7px 10px; }
+  .android-viewer .print-paper .pp-table tbody tr:nth-child(n) td { padding: 7px 10px; }
+  .android-viewer .print-paper .pp-corr-cell   { font-size: 16px; width: 68px; padding: 7px 10px; }
+  .android-viewer .print-paper .pp-desc-cell   { font-size: 15px; padding: 7px 10px; }
+  .android-viewer .print-paper .pp-ns-title    { font-size: 14px; padding: 8px 10px; }
+  .android-viewer .print-paper .pp-footer      { font-size: 13px; margin-top: 22px; }
 </style>
 </head>
 <body>
