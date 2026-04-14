@@ -501,6 +501,8 @@
     border-bottom: 1px solid var(--border);
     color: var(--text-primary);
     transition: background 0.1s;
+    white-space: normal;
+    word-break: break-word;
   }
   .lib-picker-item:last-child { border-bottom: none; }
   .lib-picker-item:hover { background: var(--primary-light, rgba(0,96,208,0.08)); }
@@ -3813,7 +3815,7 @@ if (window.Capacitor) {
 <!-- Library picker dropdown -->
 <div id="libPickerDropdown" style="display:none;position:fixed;z-index:10000;
   background:var(--card-bg);border:1px solid var(--border);border-radius:8px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.25);min-width:200px;max-width:300px;overflow:hidden;"></div>
+  box-shadow:0 4px 20px rgba(0,0,0,0.25);min-width:200px;max-width:520px;overflow:hidden;"></div>
 
 <!-- Android update banner (hidden until update is detected) -->
 <div id="androidUpdateBanner" style="
