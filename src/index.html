@@ -3064,10 +3064,13 @@ function renderLibrarySlotEntries(slotKey) {
   }
 
   container.innerHTML = entries.map((entry, idx) => `
-    <div class="custom-field-row" style="margin-bottom:6px">
-      <input type="text" id="libSlotInput_${idx}" value="${esc(entry)}" placeholder="Bezeichnung...">
-      <button class="btn btn-secondary" style="font-size:12px;padding:3px 8px;white-space:nowrap" onclick="saveLibrarySlotEntry('${slotKey}',${idx})">✓ Speichern</button>
-      <button class="btn btn-danger"    style="font-size:12px;padding:3px 8px" onclick="deleteLibrarySlotEntry('${slotKey}',${idx})">✕</button>
+    <div style="margin-bottom:10px;padding:8px 10px;background:var(--bg-row);border:1px solid var(--border-color);border-radius:6px">
+      <input type="text" id="libSlotInput_${idx}" value="${esc(entry)}" placeholder="Bezeichnung..."
+        style="width:100%;box-sizing:border-box;margin-bottom:6px">
+      <div style="display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn btn-secondary" style="font-size:12px;padding:3px 10px;white-space:nowrap" onclick="saveLibrarySlotEntry('${slotKey}',${idx})">✓ Speichern</button>
+        <button class="btn btn-danger"    style="font-size:12px;padding:3px 8px" onclick="deleteLibrarySlotEntry('${slotKey}',${idx})">✕</button>
+      </div>
     </div>
   `).join('');
 }
