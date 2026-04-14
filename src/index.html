@@ -495,17 +495,18 @@
   .lib-load-btn.has-entries { opacity: 0.85; }
 
   .lib-picker-item {
-    padding: 8px 14px;
+    padding: 10px 14px;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-primary);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: #f0f0f0;
     transition: background 0.1s;
     white-space: normal;
     word-break: break-word;
   }
   .lib-picker-item:last-child { border-bottom: none; }
-  .lib-picker-item:hover { background: var(--primary-light, rgba(0,96,208,0.08)); }
+  .lib-picker-item:hover { background: rgba(0,120,255,0.25); color: #fff; }
 
   .lib-slot-grid {
     display: flex;
@@ -3814,8 +3815,8 @@ if (window.Capacitor) {
 
 <!-- Library picker dropdown -->
 <div id="libPickerDropdown" style="display:none;position:fixed;z-index:10000;
-  background:var(--card-bg);border:1px solid var(--border);border-radius:8px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.25);min-width:200px;max-width:520px;overflow:hidden;"></div>
+  background:#1e2533;border:1px solid rgba(255,255,255,0.15);border-radius:8px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.55);min-width:200px;max-width:520px;overflow:hidden;"></div>
 
 <!-- Android update banner (hidden until update is detected) -->
 <div id="androidUpdateBanner" style="
