@@ -2700,15 +2700,33 @@ function renderCustomFields() {
 }
 
 function addCustomField() {
+  // Aktuelle DOM-Werte in State übernehmen, bevor neu gerendert wird
+  document.querySelectorAll('#customFieldsContainer .custom-field-row').forEach((row, i) => {
+    const keyEl = row.querySelector('.cf-key');
+    const valEl = row.querySelector('.cf-val');
+    if (keyEl && valEl && state.customFields[i]) {
+      state.customFields[i].key   = keyEl.value;
+      state.customFields[i].value = valEl.value;
+    }
+  });
   state.customFields.push({ key: '', value: '' });
   renderCustomFields();
-  // Focus first empty key input
+  // Focus auf letztes neues Feld
   const inputs = document.querySelectorAll('#customFieldsContainer .cf-key');
   const last = inputs[inputs.length - 1];
   if (last) last.focus();
 }
 
 function removeCustomField(index) {
+  // Aktuelle DOM-Werte in State übernehmen, bevor neu gerendert wird
+  document.querySelectorAll('#customFieldsContainer .custom-field-row').forEach((row, i) => {
+    const keyEl = row.querySelector('.cf-key');
+    const valEl = row.querySelector('.cf-val');
+    if (keyEl && valEl && state.customFields[i]) {
+      state.customFields[i].key   = keyEl.value;
+      state.customFields[i].value = valEl.value;
+    }
+  });
   state.customFields.splice(index, 1);
   renderCustomFields();
 }
