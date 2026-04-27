@@ -2142,7 +2142,8 @@ function buildCommentBlock() {
   collectFormData();
   const lines = [MARKER_START];
   const m = state.meta;
-  const s = v => toNcSafe(v); // shorthand
+  const isSL200 = getActiveMachine()?.id === 'sl200';
+  const s = v => isSL200 ? toNcSafe(v).toUpperCase() : toNcSafe(v);
 
   if (m.teil)      lines.push(`(TEIL ${s(m.teil)})`);
   if (m.artikel)   lines.push(`(ARTIKEL ${s(m.artikel)})`);
