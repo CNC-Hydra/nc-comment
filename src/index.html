@@ -2360,10 +2360,12 @@ function buildToolRows(tools) {
     const tLabel = toolLabel(t);
     const hasLibEntries = getLibraryEntries(state.activeMachineId, k).length > 0;
 
+    const isSL200 = getActiveMachine()?.id === 'sl200';
+    const maxlenAttr = isSL200 ? ' maxlength="30"' : '';
     const mainRow = `<tr data-tool-key="${k}" class="${rowClass}">
       <td><span class="t-chip">${tLabel}</span></td>
       <td><span class="${isNS ? 'corr-chip-nonstd' : 'corr-chip'}">${t.corr}</span>${statusBadge}</td>
-      <td><input type="text" class="tool-desc-input" value="${esc(t.desc)}" placeholder="Bezeichnung..." oninput="onToolDescInput(this,'${k}')"></td>
+      <td><input type="text" class="tool-desc-input" value="${esc(t.desc)}" placeholder="Bezeichnung..."${maxlenAttr} oninput="onToolDescInput(this,'${k}')"></td>
       <td style="text-align:center;white-space:nowrap">
         <button class="lib-save-btn" title="In Bibliothek speichern" onclick="saveToolToLibrary('${k}',this)">☁</button>
         <button class="lib-load-btn${hasLibEntries ? ' has-entries' : ''}" title="Aus Bibliothek laden" onclick="showLibraryPicker('${k}',this)">📖</button>
@@ -2675,12 +2677,16 @@ function applyLibraryEntry(idx) {
 }
 
 function renderMetaForm() {
+  const isSL200 = getActiveMachine()?.id === 'sl200';
   for (const key of META_FIELDS) {
     const el = document.getElementById(`meta-${key}`);
-    if (el) el.value = state.meta[key] || '';
+    if (!el) continue;
+    el.value = state.meta[key] || '';
+    if (isSL200) el.setAttribute('maxlength', '30');
+    else el.removeAttribute('maxlength');
   }
   // Gegenspindel-Feld nur für Maschinen mit Gegenspindel (nicht SL 200)
-  const hasGegenspindel = getActiveMachine()?.id !== 'sl200';
+  const hasGegenspindel = !isSL200;
   document.getElementById('field-nullpunkt2').style.display = hasGegenspindel ? '' : 'none';
 }
 
@@ -2690,10 +2696,12 @@ function renderCustomFields() {
     container.innerHTML = '<div style="font-size:13px;color:var(--text-muted)">Keine eigenen Felder. Fügen Sie oben welche hinzu.</div>';
     return;
   }
+  const isSL200 = getActiveMachine()?.id === 'sl200';
+  const maxlenAttr = isSL200 ? ' maxlength="30"' : '';
   container.innerHTML = state.customFields.map((cf, i) => `
     <div class="custom-field-row">
-      <input type="text" class="cf-key" value="${esc(cf.key)}" placeholder="Feldname">
-      <input type="text" class="cf-val" value="${esc(cf.value)}" placeholder="Wert">
+      <input type="text" class="cf-key" value="${esc(cf.key)}" placeholder="Feldname"${maxlenAttr}>
+      <input type="text" class="cf-val" value="${esc(cf.value)}" placeholder="Wert"${maxlenAttr}>
       <button class="btn btn-danger" style="padding:3px 8px;font-size:12px" onclick="removeCustomField(${i})">✕</button>
     </div>
   `).join('');
