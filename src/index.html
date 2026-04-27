@@ -2009,6 +2009,7 @@ function parseFromMarker(text) {
   const info   = {};
   const tools  = [];
   const custom = [];
+  let pendingCfKey = null;
 
   const KNOWN = new Set(Object.keys(META_LABELS).map(k => META_LABELS[k]));
 
@@ -2024,6 +2025,7 @@ function parseFromMarker(text) {
     // Tool line: T + 2 digits + optional -HS/-GS/-NS + space + desc
     const toolM = inner.match(/^T(\d{2})(?:-(HS|GS|NS))?\s+(.*)|^T(\d{2})(?:-(HS|GS|NS))?$/);
     if (toolM) {
+      if (pendingCfKey !== null) { custom.push({ key: pendingCfKey, value: '' }); pendingCfKey = null; }
       const num    = toolM[1] || toolM[4];
       const spin   = (toolM[2] || toolM[5]) || null;
       const desc   = (toolM[3] || '').trim();
@@ -2041,12 +2043,23 @@ function parseFromMarker(text) {
       // Map known keys to meta fields
       const metaKey = Object.entries(META_LABELS).find(([,v]) => v === key)?.[0];
       if (metaKey) {
+        if (pendingCfKey !== null) { custom.push({ key: pendingCfKey, value: '' }); pendingCfKey = null; }
         info[metaKey] = val;
-      } else {
+      } else if (val) {
+        // Old single-line format: (KEY VALUE)
+        if (pendingCfKey !== null) { custom.push({ key: pendingCfKey, value: '' }); pendingCfKey = null; }
         custom.push({ key: kvM[1], value: val });
+      } else if (pendingCfKey === null) {
+        // New two-line format, first line: (KEY)
+        pendingCfKey = kvM[1];
+      } else {
+        // New two-line format, second line: (VALUE)
+        custom.push({ key: pendingCfKey, value: kvM[1] });
+        pendingCfKey = null;
       }
     }
   }
+  if (pendingCfKey !== null) custom.push({ key: pendingCfKey, value: '' });
 
   // Compare comment tools vs. actual program tools to detect changes
   const commentToolKeys = new Set(tools.map(t => t.key));
@@ -2142,7 +2155,10 @@ function buildCommentBlock() {
   if (m.spannung)   lines.push(`(SPANNUNG ${s(m.spannung)})`);
 
   for (const cf of state.customFields) {
-    if (cf.key.trim()) lines.push(`(${s(cf.key)} ${s(cf.value)})`);
+    if (cf.key.trim()) {
+      lines.push(`(${s(cf.key)})`);
+      if (cf.value.trim()) lines.push(`(${s(cf.value)})`);
+    }
   }
 
   for (const t of state.tools) {
